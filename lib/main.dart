@@ -15,6 +15,7 @@ import 'package:nmobile/blocs/client/nkn_client_bloc.dart';
 import 'package:nmobile/blocs/contact/contact_bloc.dart';
 import 'package:nmobile/blocs/global/global_bloc.dart';
 import 'package:nmobile/blocs/global/global_state.dart';
+import 'package:nmobile/blocs/message/message_bloc.dart';
 import 'package:nmobile/blocs/wallet/filtered_wallets_bloc.dart';
 import 'package:nmobile/consts/theme.dart';
 import 'package:nmobile/helpers/global.dart';
@@ -145,6 +146,9 @@ class AppState extends State<App> with WidgetsBindingObserver, Tag {
     ),
     BlocProvider<AuthBloc>(
       create: (BuildContext context) => AuthBloc(),
+    ),
+    BlocProvider<MessageBloc>(
+      create: (BuildContext context) => MessageBloc(),
     ),
   ];
 

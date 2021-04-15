@@ -27,6 +27,19 @@ class MessageDataCenter {
     }
   }
 
+  static Future<MessageSchema> resendMessage(String msgId) async{
+    Database cdb = await NKNDataManager().currentDatabase();
+    var res = await cdb.query(
+      MessageSchema.tableName,
+      where: 'msg_id = ?',
+      whereArgs: [msgId],
+    );
+    if (res != null){
+      return MessageSchema.parseEntity(res[0]);
+    }
+    return null;
+  }
+
   Future<int> testMessage() async {
     // b5dbb01b-0385-4545-806e-7515ee263a40
 

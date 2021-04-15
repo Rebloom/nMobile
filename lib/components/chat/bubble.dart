@@ -411,17 +411,17 @@ class _ChatBubbleState extends State<ChatBubble> {
       );
     } else {
       /// add resendIcon
-      Widget resendWidget = Container();
+      Widget resendWidget = Spacer();
       if (messageSchema.messageStatus == MessageStatus.MessageSendFail){
         resendWidget = Container(
-          color: Colors.amberAccent,
+          margin: EdgeInsets.only(left: 5,right: 10),
           child: GestureDetector(
             onTap: ()=>{
               widget.resendMessage(messageSchema.msgId)
             },
             child: Icon(
               FontAwesomeIcons.redo,
-              size: 30,
+              size: 24,
             ),
           ),
         );
@@ -440,6 +440,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                   : Alignment.centerLeft,
               child: Row(
                 children: [
+                  Spacer(),
                   resendWidget,
                   GestureDetector(
                     key: popupMenuKey,

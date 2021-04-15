@@ -555,6 +555,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
                             },
                             resendMessage: (String msgId){
                               /// resendMessage Logic
+                              _resendMessage(msgId);
                             },
                           );
                         },
@@ -570,6 +571,36 @@ class _MessageChatPageState extends State<MessageChatPage> {
         ),
       ),
     );
+  }
+
+  _resendMessage(String msgId) async{
+    NLog.w('Resend msgId is______'+msgId.toString());
+    SimpleConfirm(
+        context: context,
+        content: 'Resend Message?',
+        buttonText: NL10ns
+            .of(context)
+            .ok,
+        buttonColor: Colors.red,
+        callback: (v) async{
+          if (v) {
+            MessageSchema resendMsg = await MessageDataCenter.resendMessage(msgId);
+
+            resendMsg.messageStatus = MessageStatus.MessageSending;
+            MessageModel model = await MessageModel.modelFromMessageFrom(resendMsg);
+            setState(() {
+              for (int i = 0; i < _messages.length; i++){
+                MessageModel checkMsg = _messages[i];
+                if (checkMsg.messageEntity.msgId == msgId){
+                  _messages.removeAt(i);
+                  _messages.insert(i, model);
+                  break;
+                }
+              }
+            });
+            _chatBloc.add(SendMessageEvent(resendMsg));
+          }
+        }).show();
   }
 
   _pushToContactSettingPage() async{
