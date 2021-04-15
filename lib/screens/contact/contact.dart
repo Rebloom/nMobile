@@ -43,6 +43,7 @@ import 'package:nmobile/model/entity/message.dart';
 import 'package:nmobile/model/entity/wallet.dart';
 import 'package:nmobile/screens/chat/authentication_helper.dart';
 import 'package:nmobile/screens/chat/message.dart';
+import 'package:nmobile/screens/chat/message_chat_page.dart';
 import 'package:nmobile/screens/chat/photo_page.dart';
 import 'package:nmobile/screens/contact/chat_profile.dart';
 import 'package:nmobile/screens/contact/show_chat_id.dart';
@@ -1240,9 +1241,8 @@ class _ContactScreenState extends State<ContactScreen> {
                   ),
                 ),
                 onPressed: () {
-                  Navigator.of(context).pushNamed(ChatSinglePage.routeName,
-                      arguments: ChatSchema(
-                          type: ChatType.PrivateChat, contact: currentUser));
+                  Navigator.of(context).pushNamed(MessageChatPage.routeName,
+                      arguments: currentUser);
                 },
               ).sized(h: 50, w: double.infinity),
             );

@@ -24,6 +24,7 @@ import 'package:nmobile/model/entity/topic_repo.dart';
 import 'package:nmobile/model/entity/chat.dart';
 import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/screens/chat/channel.dart';
+import 'package:nmobile/screens/chat/message_chat_page.dart';
 import 'package:nmobile/screens/contact/add_contact.dart';
 import 'package:nmobile/screens/contact/contact.dart';
 import 'package:nmobile/screens/contact/no_contact.dart';
@@ -672,8 +673,8 @@ class _ContactHomeState extends State<ContactHome> {
       topicList.add(InkWell(
         onTap: () async {
           Topic topic = await TopicRepo().getTopicByName(item.topic);
-          Navigator.of(context).pushNamed(ChatGroupPage.routeName,
-              arguments: ChatSchema(type: ChatType.Channel, topic: topic));
+          Navigator.of(context).pushNamed(MessageChatPage.routeName,
+              arguments: topic);
         },
         child: Container(
           height: 72,

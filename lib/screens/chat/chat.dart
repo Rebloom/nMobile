@@ -39,7 +39,8 @@ import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/model/entity/wallet.dart';
 import 'package:nmobile/screens/chat/authentication_helper.dart';
 import 'package:nmobile/screens/chat/message.dart';
-import 'package:nmobile/screens/chat/messages.dart';
+import 'package:nmobile/screens/chat/message_chat_page.dart';
+import 'package:nmobile/screens/chat/message_list_page.dart';
 import 'package:nmobile/screens/contact/contact.dart';
 import 'package:nmobile/screens/contact/home.dart';
 import 'package:nmobile/screens/wallet/import_nkn_eth_wallet.dart';
@@ -738,19 +739,9 @@ class _ChatScreenState extends State<ChatScreen>
                                     var c = await ContactSchema
                                         .fetchContactByAddress(address);
                                     if (c != null) {
-                                      Navigator.of(context)
-                                          .pushReplacementNamed(
-                                              ChatSinglePage.routeName,
-                                              arguments: ChatSchema(
-                                                  type: ChatType.PrivateChat,
-                                                  contact: c));
+                                      _pushToSingleChat(c);
                                     } else {
-                                      Navigator.of(context)
-                                          .pushReplacementNamed(
-                                              ChatSinglePage.routeName,
-                                              arguments: ChatSchema(
-                                                  type: ChatType.PrivateChat,
-                                                  contact: contact));
+                                      _pushToSingleChat(contact);
                                     }
                                   } else {
                                     Navigator.of(context).pop();
@@ -770,6 +761,11 @@ class _ChatScreenState extends State<ChatScreen>
         );
       },
     );
+  }
+
+  _pushToSingleChat(ContactSchema contactInfo) async{
+    Navigator.of(context).pushNamed(MessageChatPage.routeName,
+        arguments: contactInfo);
   }
 
   Widget _chatHomeScreen() {
@@ -823,7 +819,7 @@ class _ChatScreenState extends State<ChatScreen>
                                   flex: 1,
                                   child: Padding(
                                     padding: EdgeInsets.only(top: 0.2),
-                                    child: MessagesTab(TimerAuth.instance),
+                                    child: MessageListPage(TimerAuth.instance),
                                   ),
                                 ),
                               ],

@@ -32,7 +32,7 @@ import 'package:nmobile/helpers/utils.dart';
 import 'package:nmobile/l10n/localization_intl.dart';
 import 'package:nmobile/model/datacenter/contact_data_center.dart';
 import 'package:nmobile/model/datacenter/group_data_center.dart';
-import 'package:nmobile/model/entity/MessageListModel.dart';
+import 'package:nmobile/model/entity/message_list_model.dart';
 import 'package:nmobile/model/entity/topic_repo.dart';
 import 'package:nmobile/model/popular_channel.dart';
 import 'package:nmobile/model/entity/chat.dart';
@@ -42,22 +42,23 @@ import 'package:nmobile/model/entity/message.dart';
 import 'package:nmobile/screens/chat/authentication_helper.dart';
 import 'package:nmobile/screens/chat/channel.dart';
 import 'package:nmobile/screens/chat/message.dart';
+import 'package:nmobile/screens/chat/message_chat_page.dart';
 import 'package:nmobile/utils/extensions.dart';
 import 'package:nmobile/utils/image_utils.dart';
 import 'package:nmobile/utils/log_tag.dart';
 import 'package:nmobile/utils/nlog_util.dart';
 import 'package:oktoast/oktoast.dart';
 
-class MessagesTab extends StatefulWidget {
+class MessageListPage extends StatefulWidget {
   final TimerAuth timerAuth;
 
-  MessagesTab(this.timerAuth);
+  MessageListPage(this.timerAuth);
 
   @override
-  _MessagesTabState createState() => _MessagesTabState();
+  MessageListPageState createState() => MessageListPageState();
 }
 
-class _MessagesTabState extends State<MessagesTab>
+class MessageListPageState extends State<MessageListPage>
     with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin, Tag {
   List<MessageListModel> _messagesList = <MessageListModel>[];
 
@@ -73,7 +74,6 @@ class _MessagesTabState extends State<MessagesTab>
   bool isHideTip = false;
 
   int timeBegin = 0;
-
   int startIndex = 0;
 
   @override
@@ -111,11 +111,9 @@ class _MessagesTabState extends State<MessagesTab>
   }
 
   _routeToGroupChatPage(topicName) async {
-    final topic = await GroupChatHelper.fetchTopicInfoByName(topicName);
-    Navigator.of(context)
-        .pushNamed(ChatGroupPage.routeName,
-            arguments: ChatSchema(type: ChatType.Channel, topic: topic))
-        .then((value) {
+    Topic topic = await GroupChatHelper.fetchTopicInfoByName(topicName);
+    Navigator.of(context).pushNamed(MessageChatPage.routeName,
+        arguments: topic).then((value) {
       if (value == true) {
         _startRefreshMessage();
       }
@@ -243,6 +241,7 @@ class _MessagesTabState extends State<MessagesTab>
     _messagesList.clear();
     startIndex = 0;
     _messageBloc.add(FetchMessageListEvent(startIndex));
+    NLog.w('_startRefreshMessage called is____'+startIndex.toString());
   }
 
   Future _loadMore() async {
@@ -276,13 +275,11 @@ class _MessagesTabState extends State<MessagesTab>
             }
             return BlocBuilder<MessageBloc, MessageState>(
               builder: (context, messageState){
-                NLog.w('Message State is____'+messageState.toString());
                 if (messageState is FetchMessageListState){
                   if (_messagesList == null){
                     _messagesList = new List();
                   }
                   if (startIndex == 0){
-                    NLog.w("StartIndex is -----");
                     _messagesList = messageState.messageList;
                   }
                   else{
@@ -455,11 +452,7 @@ class _MessagesTabState extends State<MessagesTab>
                                     type: ContactType.stranger,
                                     clientAddress: address);
                                 await contact.insertContact();
-                                Navigator.of(context).pushNamed(
-                                    ChatSinglePage.routeName,
-                                    arguments: ChatSchema(
-                                        type: ChatType.PrivateChat,
-                                        contact: contact));
+                                _pushToSingleChat(contact);
                               }
                             } else {
                               widget.timerAuth.onCheckAuthGetPassword(context);
@@ -868,6 +861,10 @@ class _MessagesTabState extends State<MessagesTab>
     return Container();
   }
 
+  _pushToSingleChat(ContactSchema contactInfo) async{
+    Navigator.of(context).pushNamed(MessageChatPage.routeName,
+        arguments: contactInfo);
+  }
   Widget getSingleChatItemView(MessageListModel item) {
     LabelType bottomType = LabelType.bodySmall;
 
@@ -937,9 +934,7 @@ class _MessagesTabState extends State<MessagesTab>
     }
     return InkWell(
       onTap: () {
-        Navigator.of(context).pushNamed(ChatSinglePage.routeName,
-            arguments:
-                ChatSchema(type: ChatType.PrivateChat, contact: contact));
+        _pushToSingleChat(contact);
       },
       child: Container(
         color: item.isTop ? Colours.light_fb : Colours.transparent,

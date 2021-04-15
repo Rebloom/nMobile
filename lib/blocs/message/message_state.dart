@@ -1,4 +1,4 @@
-import 'package:nmobile/model/entity/MessageListModel.dart';
+import 'package:nmobile/model/entity/message_list_model.dart';
 
 abstract class MessageState {
   const MessageState();

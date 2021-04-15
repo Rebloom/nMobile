@@ -5,6 +5,7 @@ import 'package:nmobile/screens/advice_page.dart';
 import 'package:nmobile/screens/chat/channel.dart';
 import 'package:nmobile/screens/chat/channel_members.dart';
 import 'package:nmobile/screens/chat/message.dart';
+import 'package:nmobile/screens/chat/message_chat_page.dart';
 import 'package:nmobile/screens/chat/photo_page.dart';
 import 'package:nmobile/screens/chat/populai_group_page.dart';
 import 'package:nmobile/screens/common/page/change_update_content.dart';
@@ -54,11 +55,8 @@ Map<String, WidgetBuilder> routes = {
       SendNknScreen(arguments: arguments),
   SendErc20Screen.routeName: (BuildContext context, {arguments}) =>
       SendErc20Screen(arguments: arguments),
-//  NoConnectScreen.routeName: (BuildContext context) => NoConnectScreen(),
-  ChatSinglePage.routeName: (BuildContext context, {arguments}) =>
-      ChatSinglePage(arguments: arguments),
-  ChatGroupPage.routeName: (BuildContext context, {arguments}) =>
-      ChatGroupPage(arguments: arguments),
+  MessageChatPage.routeName: (BuildContext context, {arguments}) =>
+      MessageChatPage(arguments),
   ContactScreen.routeName: (BuildContext context, {arguments}) =>
       ContactScreen(contactInfo: arguments),
   ContactHome.routeName: (BuildContext context, {arguments}) =>

@@ -21,6 +21,7 @@ import 'package:nmobile/model/popular_channel.dart';
 import 'package:nmobile/model/entity/chat.dart';
 import 'package:nmobile/model/group_chat_helper.dart';
 import 'package:nmobile/screens/chat/channel.dart';
+import 'package:nmobile/screens/chat/message_chat_page.dart';
 import 'package:nmobile/utils/extensions.dart';
 import 'package:nmobile/utils/image_utils.dart';
 import 'package:nmobile/utils/nlog_util.dart';
@@ -402,13 +403,9 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
   _createOrJoinGroupSuccess(String topicName) async {
     await GroupChatHelper.insertTopicIfNotExists(topicName);
     var group = await GroupChatHelper.fetchTopicInfoByName(topicName);
-    Navigator.of(context).pushReplacementNamed(
-      ChatGroupPage.routeName,
-      arguments: ChatSchema(
-        type: group.isPrivateTopic() ? ChatType.PrivateChannel : ChatType.Channel,
-        topic: group,
-      ),
-    );
+
+    Navigator.of(context).pushNamed(MessageChatPage.routeName,
+        arguments: group);
   }
 
   createOrJoinGroup(topicName) async {

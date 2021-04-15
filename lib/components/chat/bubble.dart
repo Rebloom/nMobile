@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:common_utils/common_utils.dart';
-import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -22,9 +21,9 @@ import 'package:nmobile/helpers/global.dart';
 import 'package:nmobile/l10n/localization_intl.dart';
 import 'package:nmobile/model/datacenter/group_data_center.dart';
 import 'package:nmobile/model/entity/topic_repo.dart';
+import 'package:nmobile/model/message_model.dart';
 import 'package:nmobile/router/custom_router.dart';
 import 'package:nmobile/model/entity/contact.dart';
-import 'package:nmobile/model/group_chat_helper.dart';
 import 'package:nmobile/model/entity/message.dart';
 import 'package:nmobile/screens/chat/photo_page.dart';
 import 'package:nmobile/screens/contact/contact.dart';
@@ -37,31 +36,31 @@ import 'package:nmobile/utils/nlog_util.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-enum BubbleStyle { Me, Other, SendError }
+enum BubbleStyle { SendSuccess, SendFailed, Received}
 
 class ChatBubble extends StatefulWidget {
-  MessageSchema message;
-  MessageSchema preMessage;
-  ContactSchema contact;
+  MessageModel message;
   BubbleStyle style;
   ValueChanged<String> onChanged;
+  ValueChanged<String> resendMessage;
   bool showTime;
   bool hideHeader;
 
   ChatBubble(
-      {this.message,
-      this.contact,
-      this.onChanged,
-      this.preMessage,
-      this.showTime = true,
-      this.hideHeader = false}) {
-    if (message.messageStatus == MessageStatus.MessageReceived ||
-        message.messageStatus == MessageStatus.MessageReceivedRead) {
-      style = BubbleStyle.Other;
-    } else if (message.messageStatus == MessageStatus.MessageSendFail) {
-      style = BubbleStyle.SendError;
+      { this.message,
+        this.onChanged,
+        this.resendMessage,
+        this.showTime = true,
+        this.hideHeader = false}) {
+    MessageSchema mSchema = message.messageEntity;
+
+    if (mSchema.messageStatus == MessageStatus.MessageReceived ||
+        mSchema.messageStatus == MessageStatus.MessageReceivedRead) {
+      style = BubbleStyle.Received;
+    } else if (mSchema.messageStatus == MessageStatus.MessageSendFail) {
+      style = BubbleStyle.SendFailed;
     } else {
-      style = BubbleStyle.Me;
+      style = BubbleStyle.SendSuccess;
     }
   }
 
@@ -82,118 +81,8 @@ class _ChatBubbleState extends State<ChatBubble> {
   double audioProgress = 0.0;
   double audioLeft = 0.0;
 
-  void startPlay() async {
-    _mPlayer
-        .openAudioSession(
-            focus: AudioFocus.requestFocusTransient,
-            category: SessionCategory.playAndRecord,
-            mode: SessionMode.modeDefault,
-            device: AudioDevice.speaker)
-        .then((value) {
-      if (mounted) {
-        setState(() {
-          _mPlayerIsInited = true;
-          _readyToPlay();
-        });
-      }
-    });
-  }
-
-  _readyToPlay() async {
-    if (widget.message.audioFileDuration == null) {
-      NLog.w('Wrong!!! widget.message.audioFileDuration is null');
-      return;
-    }
-
-    var status = await Permission.storage.request();
-    if (status != PermissionStatus.granted) {
-      NLog.w('no auth to storage!!!');
-      showToast('open storage permission to this app');
-    }
-
-    await _mPlayer.setSubscriptionDuration(Duration(milliseconds: 30));
-    _playerSubscription = _mPlayer.onProgress.listen((event) {
-      double durationDV = event.duration.inMilliseconds / 1000;
-      double currentDV = event.position.inMilliseconds / 1000;
-
-      setState(() {
-        if (widget.message.audioFileDuration == null) {
-          widget.message.audioFileDuration = durationDV;
-          widget.message.options['audioDuration'] =
-              NumUtil.getNumByValueDouble(durationDV, 2).toString();
-          widget.message.updateMessageOptions();
-        }
-        double cProgress = currentDV / durationDV + 0.1;
-        audioLeft = widget.message.audioFileDuration - currentDV;
-
-        audioLeft = NumUtil.getNumByValueDouble(audioLeft, 2);
-        if (audioLeft < 0.0) {
-          audioLeft = 0.0;
-        }
-        if (cProgress > 1) {
-          audioProgress = 1;
-        } else {
-          audioProgress = cProgress;
-        }
-      });
-    });
-
-    File file = File(_mPath);
-    if (file.existsSync()) {
-      NLog.w('mPlayPath exists__' + _mPath);
-    } else {
-      NLog.w('mPlayPath does not exists__' + _mPath);
-    }
-    audioCellIsPlaying = true;
-
-    if (Platform.isAndroid) {
-      _mPath = 'file:///' + _mPath;
-    }
-
-    await _mPlayer.startPlayer(
-        fromURI: _mPath,
-        codec: Codec.defaultCodec,
-        whenFinished: () {
-          if (mounted) {
-            setState(() {
-              NLog.w('mPlayPath finished:__' + _mPath);
-              audioCellIsPlaying = false;
-              audioProgress = 0.0;
-              audioLeft = widget.message.audioFileDuration;
-              _mPlayer.closeAudioSession();
-            });
-          }
-        });
-    NLog.w('_mPlayer.startPlayer');
-  }
-
-  Future<void> stopPlayer() async {
-    await _mPlayer.stopPlayer();
-  }
-
-  _textPopupMenuShow() {
-    PopupMenu popupMenu = PopupMenu(
-      context: context,
-      maxColumn: 4,
-      items: [
-        MenuItem(
-          userInfo: 0,
-          title: NL10ns.of(context).copy,
-          textStyle:
-              TextStyle(color: DefaultTheme.fontLightColor, fontSize: 12),
-        ),
-      ],
-      onClickMenu: (MenuItemProvider item) {
-        var index = (item as MenuItem).userInfo;
-        switch (index) {
-          case 0:
-            CopyUtils.copyAction(context, widget.message.content);
-            break;
-        }
-      },
-    );
-    popupMenu.show(widgetKey: popupMenuKey);
-  }
+  MessageSchema messageSchema;
+  ContactSchema contactInfo;
 
   @override
   void dispose() {
@@ -216,11 +105,15 @@ class _ChatBubbleState extends State<ChatBubble> {
 
   @override
   Widget build(BuildContext context) {
+
+    messageSchema = widget.message.messageEntity;
+    contactInfo = widget.message.contactEntity;
+
     BoxDecoration decoration;
     Widget timeWidget;
     Widget burnWidget = Container();
     String timeFormat =
-        NKNTimeUtil.formatChatTime(context, widget.message.timestamp);
+        NKNTimeUtil.formatChatTime(context, messageSchema.timestamp);
     List<Widget> contentsWidget = <Widget>[];
     timeWidget = Label(
       timeFormat,
@@ -229,7 +122,8 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
 
     bool dark = false;
-    if (widget.style == BubbleStyle.Me) {
+    Color burnWidgetColor = DefaultTheme.fontLightColor.withAlpha(178);
+    if (widget.style == BubbleStyle.SendSuccess) {
       decoration = BoxDecoration(
         color: DefaultTheme.primaryColor,
         borderRadius: BorderRadius.only(
@@ -240,28 +134,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         ),
       );
       dark = true;
-      if (widget.message.options != null &&
-          widget.message.options['deleteAfterSeconds'] != null) {
-        burnWidget = Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Icon(FontAwesomeIcons.clock,
-                    size: 12, color: DefaultTheme.fontLightColor.withAlpha(178))
-                .pad(b: 1, r: 4),
-            Label(
-              Format.timeFromNowFormat(widget.message.deleteTime ??
-                  DateTime.now().add(Duration(
-                      seconds:
-                          widget.message.options['deleteAfterSeconds'] + 1))),
-              type: LabelType.bodySmall,
-              fontSize: DefaultTheme.iconTextFontSize,
-              color: DefaultTheme.fontLightColor.withAlpha(178),
-            ),
-          ],
-        ).pad(t: 1);
-      }
-    } else if (widget.style == BubbleStyle.SendError) {
+    } else if (widget.style == BubbleStyle.SendFailed) {
       decoration = BoxDecoration(
         color: DefaultTheme.fallColor.withAlpha(178),
         borderRadius: BorderRadius.only(
@@ -282,43 +155,22 @@ class _ChatBubbleState extends State<ChatBubble> {
           bottomRight: const Radius.circular(12),
         ),
       );
-
-      if (widget.message.options != null &&
-          widget.message.options['deleteAfterSeconds'] != null) {
-        burnWidget = Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Icon(FontAwesomeIcons.clock,
-                    size: 12, color: DefaultTheme.fontColor2)
-                .pad(b: 1, r: 4),
-            Label(
-              Format.timeFromNowFormat(widget.message.deleteTime ??
-                  DateTime.now().add(Duration(
-                      seconds:
-                          widget.message.options['deleteAfterSeconds'] + 1))),
-              type: LabelType.bodySmall,
-              fontSize: DefaultTheme.iconTextFontSize,
-              color: DefaultTheme.fontColor2,
-            ),
-          ],
-        ).pad(t: 1);
-      }
+      burnWidgetColor = DefaultTheme.fontColor2;
     }
     EdgeInsetsGeometry contentPadding = EdgeInsets.zero;
 
-    if (widget.message.contentType == ContentType.channelInvitation) {
+    if (messageSchema.contentType == ContentType.channelInvitation) {
       return getChannelInviteView();
-    } else if (widget.message.contentType == ContentType.eventSubscribe) {
+    } else if (messageSchema.contentType == ContentType.eventSubscribe) {
       return Container();
     }
 
-    if (widget.message.contentType == ContentType.nknAudio) {
-      if (widget.message.audioFileDuration == null) {
-        widget.message.audioFileDuration = 0.0;
+    if (messageSchema.contentType == ContentType.nknAudio) {
+      if (messageSchema.audioFileDuration == null) {
+        messageSchema.audioFileDuration = 0.0;
       }
       setState(() {
-        audioLeft = widget.message.audioFileDuration;
+        audioLeft = messageSchema.audioFileDuration;
         audioLeft = NumUtil.getNumByValueDouble(audioLeft, 2);
         if (audioLeft < 0) {
           audioLeft = 0.0;
@@ -327,9 +179,9 @@ class _ChatBubbleState extends State<ChatBubble> {
     }
 
     var popupMenu = _textPopupMenuShow;
-    switch (widget.message.contentType) {
+    switch (messageSchema.contentType) {
       case ContentType.text:
-        List chatContent = ChatUtil.getFormatString(widget.message.content);
+        List chatContent = ChatUtil.getFormatString(messageSchema.content);
         if (chatContent.length > 0) {
           List<InlineSpan> children = [];
           for (String s in chatContent) {
@@ -342,7 +194,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                       fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.bold)));
             } else {
-              if (widget.style == BubbleStyle.Me) {
+              if (widget.style == BubbleStyle.SendSuccess) {
                 children.add(TextSpan(
                     text: s,
                     style: TextStyle(
@@ -372,7 +224,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             Padding(
               padding: contentPadding,
               child: Markdown(
-                data: widget.message.content,
+                data: messageSchema.content,
                 dark: dark,
               ),
             ),
@@ -384,7 +236,7 @@ class _ChatBubbleState extends State<ChatBubble> {
           Padding(
             padding: contentPadding,
             child: Markdown(
-              data: widget.message.content,
+              data: messageSchema.content,
               dark: dark,
             ),
           ),
@@ -393,7 +245,7 @@ class _ChatBubbleState extends State<ChatBubble> {
       case ContentType.nknImage:
       case ContentType.media:
         popupMenu = () {};
-        String path = (widget.message.content as File).path;
+        String path = (messageSchema.content as File).path;
         contentsWidget.add(
           InkWell(
             onTap: () {
@@ -401,7 +253,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             },
             child: Padding(
               padding: contentPadding,
-              child: Image.file(widget.message.content as File),
+              child: Image.file(messageSchema.content as File),
             ),
           ),
         );
@@ -419,12 +271,12 @@ class _ChatBubbleState extends State<ChatBubble> {
             },
             child: Container(
                 child: Stack(
-              children: [
-                Row(
                   children: [
-                    _playWidget(),
-                    Spacer(),
-                    Label('$audioLeft\"' + ''),
+                    Row(
+                      children: [
+                        _playWidget(),
+                        Spacer(),
+                        Label('$audioLeft\"' + ''),
                   ],
                 ),
                 _progressWidget(),
@@ -434,9 +286,27 @@ class _ChatBubbleState extends State<ChatBubble> {
         );
     }
 
-    if (widget.message.options != null &&
-        widget.message.options['deleteAfterSeconds'] != null) {
-      if (widget.message.messageStatus != MessageStatus.MessageSendFail){
+    if (messageSchema.options != null &&
+        messageSchema.options['deleteAfterSeconds'] != null) {
+      if (messageSchema.messageStatus != MessageStatus.MessageSendFail){
+        burnWidget = Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Icon(FontAwesomeIcons.clock,
+                size: 12, color: burnWidgetColor)
+                .pad(b: 1, r: 4),
+            Label(
+              Format.timeFromNowFormat(messageSchema.deleteTime ??
+                  DateTime.now().add(Duration(
+                      seconds:
+                      messageSchema.options['deleteAfterSeconds'] + 1))),
+              type: LabelType.bodySmall,
+              fontSize: DefaultTheme.iconTextFontSize,
+              color: burnWidgetColor,
+            ),
+          ],
+        ).pad(t: 1);
         contentsWidget.add(burnWidget);
       }
     }
@@ -446,13 +316,13 @@ class _ChatBubbleState extends State<ChatBubble> {
     }
 
     double bOpacity = 0.4;
-    if (widget.message.messageStatus == MessageStatus.MessageSendReceipt ||
-        widget.message.messageStatus == MessageStatus.MessageReceived ||
-        widget.message.messageStatus == MessageStatus.MessageReceivedRead) {
+    if (messageSchema.messageStatus == MessageStatus.MessageSendReceipt ||
+        messageSchema.messageStatus == MessageStatus.MessageReceived ||
+        messageSchema.messageStatus == MessageStatus.MessageReceivedRead) {
       bOpacity = 1.0;
     }
 
-    if (widget.contact != null) {
+    if (widget.style == BubbleStyle.Received) {
       List<Widget> contents = <Widget>[
         GestureDetector(
           key: popupMenuKey,
@@ -469,7 +339,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                       children: <Widget>[
                         SizedBox(height: 8.h),
                         Label(
-                          widget.contact.getShowName,
+                          contactInfo.getShowName,
                           height: 1,
                           type: LabelType.bodyRegular,
                           color: DefaultTheme.primaryColor,
@@ -495,46 +365,44 @@ class _ChatBubbleState extends State<ChatBubble> {
           ),
         ),
       ];
-      if (widget.style == BubbleStyle.Other) {
-        contents.insert(
-            0,
-            Padding(
-              padding: EdgeInsets.only(right: 6),
-              child: GestureDetector(
-                onTap: () {
-                  if (!widget.hideHeader) {
-                    Navigator.of(context).pushNamed(ContactScreen.routeName,
-                        arguments: widget.contact);
-                  }
-                },
-                onLongPress: () {
-                  if (!widget.hideHeader) {
-                    widget.onChanged(widget.contact.getShowName);
-                  }
-                },
-                child: Opacity(
-                    opacity: !widget.hideHeader ? 1.0 : 0.0,
-                    child: CommonUI.avatarWidget(
-                      radiusSize: 24,
-                      contact: widget.contact,
-                    )),
-              ),
-            ));
-      }
+      contents.insert(
+          0,
+          Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () {
+                if (!widget.hideHeader) {
+                  Navigator.of(context).pushNamed(ContactScreen.routeName,
+                      arguments: contactInfo);
+                }
+              },
+              onLongPress: () {
+                if (!widget.hideHeader) {
+                  widget.onChanged(contactInfo.getShowName);
+                }
+              },
+              child: Opacity(
+                  opacity: !widget.hideHeader ? 1.0 : 0.0,
+                  child: CommonUI.avatarWidget(
+                    radiusSize: 24,
+                    contact: contactInfo,
+                  )),
+            ),
+          ));
       return Padding(
         padding: EdgeInsets.only(top: 4.h),
         child: Align(
-          alignment: widget.style == BubbleStyle.Me ||
-                  widget.style == BubbleStyle.SendError
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+          alignment: Alignment.centerRight,
           child: Column(
             children: <Widget>[
               widget.showTime ? timeWidget : Container(),
               widget.showTime ? SizedBox(height: 4.h) : Container(),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: contents,
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: contents,
+                ),
               ),
               !widget.hideHeader ? SizedBox(height: 8.h) : Container(),
             ],
@@ -542,6 +410,23 @@ class _ChatBubbleState extends State<ChatBubble> {
         ),
       );
     } else {
+      /// add resendIcon
+      Widget resendWidget = Container();
+      if (messageSchema.messageStatus == MessageStatus.MessageSendFail){
+        resendWidget = Container(
+          color: Colors.amberAccent,
+          child: GestureDetector(
+            onTap: ()=>{
+              widget.resendMessage(messageSchema.msgId)
+            },
+            child: Icon(
+              FontAwesomeIcons.redo,
+              size: 30,
+            ),
+          ),
+        );
+      }
+
       return Padding(
         padding: EdgeInsets.only(top: 4.h),
         child: Column(
@@ -549,29 +434,34 @@ class _ChatBubbleState extends State<ChatBubble> {
             widget.showTime ? timeWidget : Container(),
             widget.showTime ? SizedBox(height: 4.h) : Container(),
             Align(
-              alignment: widget.style == BubbleStyle.Me ||
-                      widget.style == BubbleStyle.SendError
+              alignment: widget.style == BubbleStyle.SendSuccess ||
+                      widget.style == BubbleStyle.SendFailed
                   ? Alignment.centerRight
                   : Alignment.centerLeft,
-              child: GestureDetector(
-                key: popupMenuKey,
-                onTap: popupMenu,
-                child: Opacity(
-                  opacity: bOpacity,
-                  child: Container(
-                    padding: EdgeInsets.all(10.w),
-                    decoration: decoration,
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: 272.w),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: contentsWidget,
+              child: Row(
+                children: [
+                  resendWidget,
+                  GestureDetector(
+                    key: popupMenuKey,
+                    onTap: popupMenu,
+                    child: Opacity(
+                      opacity: bOpacity,
+                      child: Container(
+                        padding: EdgeInsets.all(10.w),
+                        decoration: decoration,
+                        child: Container(
+                          constraints: BoxConstraints(maxWidth: 272.w),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: contentsWidget,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                ],
+              )
             ),
             SizedBox(height: 8.h),
           ],
@@ -582,7 +472,7 @@ class _ChatBubbleState extends State<ChatBubble> {
 
   Widget _progressWidget() {
     Color bgColor = Colors.blue;
-    if (widget.style == BubbleStyle.Me) {
+    if (widget.style == BubbleStyle.SendSuccess) {
       bgColor = Color(0xFFF5F5DC);
     }
     return Container(
@@ -617,8 +507,121 @@ class _ChatBubbleState extends State<ChatBubble> {
     ));
   }
 
+  void startPlay() async {
+    _mPlayer
+        .openAudioSession(
+        focus: AudioFocus.requestFocusTransient,
+        category: SessionCategory.playAndRecord,
+        mode: SessionMode.modeDefault,
+        device: AudioDevice.speaker)
+        .then((value) {
+      if (mounted) {
+        setState(() {
+          _mPlayerIsInited = true;
+          _readyToPlay();
+        });
+      }
+    });
+  }
+
+  _readyToPlay() async {
+    if (messageSchema.audioFileDuration == null) {
+      NLog.w('Wrong!!! widget.message.audioFileDuration is null');
+      return;
+    }
+
+    var status = await Permission.storage.request();
+    if (status != PermissionStatus.granted) {
+      NLog.w('no auth to storage!!!');
+      showToast('open storage permission to this app');
+    }
+
+    await _mPlayer.setSubscriptionDuration(Duration(milliseconds: 30));
+    _playerSubscription = _mPlayer.onProgress.listen((event) {
+      double durationDV = event.duration.inMilliseconds / 1000;
+      double currentDV = event.position.inMilliseconds / 1000;
+
+      setState(() {
+        if (messageSchema.audioFileDuration == null) {
+          messageSchema.audioFileDuration = durationDV;
+          messageSchema.options['audioDuration'] =
+              NumUtil.getNumByValueDouble(durationDV, 2).toString();
+          messageSchema.updateMessageOptions();
+        }
+        double cProgress = currentDV / durationDV + 0.1;
+        audioLeft = messageSchema.audioFileDuration - currentDV;
+
+        audioLeft = NumUtil.getNumByValueDouble(audioLeft, 2);
+        if (audioLeft < 0.0) {
+          audioLeft = 0.0;
+        }
+        if (cProgress > 1) {
+          audioProgress = 1;
+        } else {
+          audioProgress = cProgress;
+        }
+      });
+    });
+
+    File file = File(_mPath);
+    if (file.existsSync()) {
+      NLog.w('mPlayPath exists__' + _mPath);
+    } else {
+      NLog.w('mPlayPath does not exists__' + _mPath);
+    }
+    audioCellIsPlaying = true;
+
+    if (Platform.isAndroid) {
+      _mPath = 'file:///' + _mPath;
+    }
+
+    await _mPlayer.startPlayer(
+        fromURI: _mPath,
+        codec: Codec.defaultCodec,
+        whenFinished: () {
+          if (mounted) {
+            setState(() {
+              NLog.w('mPlayPath finished:__' + _mPath);
+              audioCellIsPlaying = false;
+              audioProgress = 0.0;
+              audioLeft = messageSchema.audioFileDuration;
+              _mPlayer.closeAudioSession();
+            });
+          }
+        });
+    NLog.w('_mPlayer.startPlayer');
+  }
+
+  Future<void> stopPlayer() async {
+    await _mPlayer.stopPlayer();
+  }
+
+  _textPopupMenuShow() {
+    PopupMenu popupMenu = PopupMenu(
+      context: context,
+      maxColumn: 4,
+      items: [
+        MenuItem(
+          userInfo: 0,
+          title: NL10ns.of(context).copy,
+          textStyle:
+          TextStyle(color: DefaultTheme.fontLightColor, fontSize: 12),
+        ),
+      ],
+      onClickMenu: (MenuItemProvider item) {
+        var index = (item as MenuItem).userInfo;
+        switch (index) {
+          case 0:
+            CopyUtils.copyAction(context, messageSchema.content);
+            break;
+        }
+      },
+    );
+    popupMenu.show(widgetKey: popupMenuKey);
+  }
+
   _playAudio() {
-    _mPath = (widget.message.content as File).path;
+    _mPath = (messageSchema.content as File).path;
 
     bool isOpen = _mPlayer.isOpen();
     if (isOpen == false) {
@@ -644,12 +647,12 @@ class _ChatBubbleState extends State<ChatBubble> {
   }
 
   getChannelInviteView() {
-    Topic topicSpotName = Topic.spotName(name: widget.message.content);
+    Topic topicSpotName = Topic.spotName(name: messageSchema.content);
 
-    String inviteDesc = NL10ns.of(context).invites_desc_me(widget.message.from.substring(0, 6));
-    if (widget.style == BubbleStyle.Me){
+    String inviteDesc = NL10ns.of(context).invites_desc_me(messageSchema.from.substring(0, 6));
+    if (widget.style == BubbleStyle.SendSuccess){
       inviteDesc = NL10ns.of(context)
-          .invites_desc_other(widget.message.to.substring(0, 6));
+          .invites_desc_other(messageSchema.to.substring(0, 6));
     }
 
     return Container(
@@ -666,11 +669,11 @@ class _ChatBubbleState extends State<ChatBubble> {
             ],
           ),
           SizedBox(width: 5),
-          widget.style == BubbleStyle.Me
+          widget.style == BubbleStyle.SendSuccess
               ? Space.empty
               : InkWell(
                   onTap: () async {
-                    final topicName = widget.message.content;
+                    final topicName = messageSchema.content;
                     BottomDialog.of(Global.appContext).showAcceptDialog(
                         title: NL10ns.of(context).accept_invitation,
                         subTitle: inviteDesc,
@@ -719,41 +722,41 @@ class _ChatBubbleState extends State<ChatBubble> {
   }
 }
 
-class LCPainter extends CustomPainter {
-  final double amplitude;
-  final int number;
-  LCPainter({this.amplitude = 100.0, this.number = 20});
-  @override
-  void paint(Canvas canvas, Size size) {
-    var centerY = 20.0;
-    var width = (ScreenUtil.screenWidth - 200) / number;
-
-    for (var a = 0; a < 4; a++) {
-      var path = Path();
-      path.moveTo(0.0, centerY);
-      var i = 0;
-      while (i < number) {
-        path.cubicTo(width * i, centerY, width * (i + 1),
-            centerY + amplitude - a * (20), width * (i + 2), centerY);
-        path.cubicTo(width * (i + 2), centerY, width * (i + 3),
-            centerY - amplitude + a * (20), width * (i + 4), centerY);
-        i = i + 4;
-      }
-      canvas.drawPath(
-          path,
-          Paint()
-            ..color = a == 0 ? Colors.green : Colors.lightGreen.withAlpha(50)
-            ..strokeWidth = a == 0 ? 3.0 : 2.0
-            ..maskFilter = MaskFilter.blur(
-              BlurStyle.solid,
-              5,
-            )
-            ..style = PaintingStyle.stroke);
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
-  }
-}
+// class LCPainter extends CustomPainter {
+//   final double amplitude;
+//   final int number;
+//   LCPainter({this.amplitude = 100.0, this.number = 20});
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     var centerY = 20.0;
+//     var width = (ScreenUtil.screenWidth - 200) / number;
+//
+//     for (var a = 0; a < 4; a++) {
+//       var path = Path();
+//       path.moveTo(0.0, centerY);
+//       var i = 0;
+//       while (i < number) {
+//         path.cubicTo(width * i, centerY, width * (i + 1),
+//             centerY + amplitude - a * (20), width * (i + 2), centerY);
+//         path.cubicTo(width * (i + 2), centerY, width * (i + 3),
+//             centerY - amplitude + a * (20), width * (i + 4), centerY);
+//         i = i + 4;
+//       }
+//       canvas.drawPath(
+//           path,
+//           Paint()
+//             ..color = a == 0 ? Colors.green : Colors.lightGreen.withAlpha(50)
+//             ..strokeWidth = a == 0 ? 3.0 : 2.0
+//             ..maskFilter = MaskFilter.blur(
+//               BlurStyle.solid,
+//               5,
+//             )
+//             ..style = PaintingStyle.stroke);
+//     }
+//   }
+//
+//   @override
+//   bool shouldRepaint(CustomPainter oldDelegate) {
+//     return true;
+//   }
+// }
