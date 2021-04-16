@@ -14,6 +14,8 @@ import 'package:nmobile/blocs/chat/chat_bloc.dart';
 import 'package:nmobile/blocs/chat/chat_event.dart';
 import 'package:nmobile/blocs/chat/chat_state.dart';
 import 'package:nmobile/blocs/contact/contact_bloc.dart';
+import 'package:nmobile/blocs/message/message_bloc.dart';
+import 'package:nmobile/blocs/message/message_event.dart';
 import 'package:nmobile/blocs/nkn_client_caller.dart';
 import 'package:nmobile/components/CommonUI.dart';
 import 'package:nmobile/components/box/body.dart';
@@ -65,6 +67,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
   ChatBloc _chatBloc;
   ContactBloc _contactBloc;
   ChannelBloc _channelBloc;
+  MessageBloc _messageBloc;
 
   Topic topicInfo;
   ContactSchema contactInfo;
@@ -233,6 +236,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
     _contactBloc = BlocProvider.of<ContactBloc>(context);
     _chatBloc = BlocProvider.of<ChatBloc>(context);
     _channelBloc = BlocProvider.of<ChannelBloc>(context);
+    _messageBloc = BlocProvider.of<MessageBloc>(context);
 
     _chatBloc.add(RefreshMessageListEvent(target: targetId));
 
@@ -609,7 +613,6 @@ class _MessageChatPageState extends State<MessageChatPage> {
   }
 
   _pushToContactSettingPage() async{
-    NLog.w('_pushToContactSettingPage_______'+contactInfo.clientAddress.toString());
     contactInfo = await ContactSchema.fetchContactByAddress(
         contactInfo.clientAddress);
     Navigator.of(context)
@@ -620,7 +623,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
         duration = Duration(milliseconds: 350);
       }
       Timer(duration, () async{
-        _chatBloc.add(UpdateChatEvent(targetId));
+        _messageBloc.add(UpdateSingleEvent(targetId));
         setState(() {
           _acceptNotification = false;
           if (contactInfo.notificationOpen != null) {
@@ -804,6 +807,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
       showToast(NL10ns.of(context).close);
     }
     await contactInfo.setNotificationOpen(_acceptNotification);
+    _messageBloc.add(UpdateSingleEvent(targetId));
 
     var sendMsg = MessageSchema.fromSendData(
       from: NKNClientCaller.currentChatId,

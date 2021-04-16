@@ -30,10 +30,10 @@ class SendMessageEvent extends ChatEvent {
   const SendMessageEvent(this.message);
 }
 
-class UpdateChatEvent extends ChatEvent {
-  final String targetId;
-  const UpdateChatEvent(this.targetId);
-}
+// class UpdateChatEvent extends ChatEvent {
+//   final String targetId;
+//   const UpdateChatEvent(this.targetId);
+// }
 
 class GetAndReadMessages extends ChatEvent {
   final String target;

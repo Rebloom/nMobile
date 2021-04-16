@@ -3,7 +3,10 @@
 import 'package:bloc/bloc.dart';
 import 'package:nmobile/blocs/message/message_event.dart';
 import 'package:nmobile/blocs/message/message_state.dart';
+import 'package:nmobile/model/entity/contact.dart';
+import 'package:nmobile/model/entity/message.dart';
 import 'package:nmobile/model/entity/message_list_model.dart';
+import 'package:nmobile/model/message_model.dart';
 import 'package:nmobile/utils/nlog_util.dart';
 
 class MessageBloc extends Bloc<MessageEvent, MessageState> {
@@ -25,6 +28,10 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     }
     else if (event is FetchMessageListEndEvent){
       yield FetchMessageListEndState();
+    }
+    else if (event is UpdateSingleEvent){
+      ContactSchema contactInfo = await ContactSchema.fetchContactByAddress(event.targetId);
+      yield UpdateSingleChatState(event.targetId,contactInfo);
     }
   }
 }

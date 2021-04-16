@@ -12,3 +12,7 @@ class FetchMessageListEndEvent extends MessageEvent{
   const FetchMessageListEndEvent();
 }
 
+class UpdateSingleEvent extends MessageEvent{
+  final String targetId;
+  const UpdateSingleEvent(this.targetId);
+}

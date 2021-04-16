@@ -73,14 +73,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     } else if (event is RefreshMessageChatEvent) {
       yield MessageUpdateState(
           target: event.message.to, message: event.message);
-    } else if (event is UpdateChatEvent) {
-      String targetId = event.targetId;
-
-      var res =
-          await MessageSchema.getAndReadTargetMessages(targetId, limit: 20);
-      this.add(RefreshMessageListEvent(target: targetId));
-      yield UpdateChatMessageState(res);
-    } else if (event is GetAndReadMessages) {
+    }
+    // else if (event is UpdateChatEvent) {
+    //   String targetId = event.targetId;
+    //
+    //   var res =
+    //       await MessageSchema.getAndReadTargetMessages(targetId, limit: 20);
+    //   this.add(RefreshMessageListEvent(target: targetId));
+    //   yield UpdateChatMessageState(res);
+    // }
+    else if (event is GetAndReadMessages) {
       yield* _mapGetAndReadMessagesToState(event);
     }
   }

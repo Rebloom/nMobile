@@ -1,4 +1,6 @@
+import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/model/entity/message_list_model.dart';
+import 'package:nmobile/model/message_model.dart';
 
 abstract class MessageState {
   const MessageState();
@@ -16,4 +18,10 @@ class DefaultMessageState extends MessageState{
 
 class FetchMessageListEndState extends MessageState{
   const FetchMessageListEndState();
+}
+
+class UpdateSingleChatState extends MessageState{
+  final String targetId;
+  final ContactSchema contactInfo;
+  const UpdateSingleChatState(this.targetId,this.contactInfo);
 }

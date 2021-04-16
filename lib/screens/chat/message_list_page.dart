@@ -294,6 +294,11 @@ class MessageListPageState extends State<MessageListPage>
                 else if (messageState is FetchMessageListEndState){
                   return _messageListWidget();
                 }
+                else if (messageState is UpdateSingleChatState){
+                  MessageListModel message = _messagesList.where((messageModel) => messageModel.targetId == messageState.targetId).toList()[0];
+                  message.contact = messageState.contactInfo;
+                  return _messageListWidget();
+                }
                 return _noMessageWidget();
               },
             );
@@ -864,6 +869,20 @@ class MessageListPageState extends State<MessageListPage>
   _pushToSingleChat(ContactSchema contactInfo) async{
     Navigator.of(context).pushNamed(MessageChatPage.routeName,
         arguments: contactInfo);
+
+    // Navigator.of(context)
+    //     .pushNamed(MessageChatPage.routeName, arguments: contactInfo)
+    //     .then((v) async {
+    //   // Duration duration = Duration(milliseconds: 10);
+    //   //
+    //   //
+    //   // if (v == null){
+    //   //   duration = Duration(milliseconds: 350);
+    //   // }
+    //   // Timer(duration, () async{
+    //   //   _chatBloc.add(UpdateChatEvent(targetId));
+    //   // });
+    // });
   }
   Widget getSingleChatItemView(MessageListModel item) {
     LabelType bottomType = LabelType.bodySmall;
