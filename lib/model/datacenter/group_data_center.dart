@@ -513,7 +513,7 @@ class GroupDataCenter{
         NLog.w('Contains memberStatus_____'+sub.memberStatus.toString());
       }
       else{
-        subRepo.updateMemberStatus(sub, MemberStatus.DefaultNotMember);
+        // subRepo.updateMemberStatus(sub, MemberStatus.DefaultNotMember);
         NLog.w('Contains NO_____'+sub.chatId.toString());
         NLog.w('Contains NO memberStatus_____'+sub.memberStatus.toString());
       }

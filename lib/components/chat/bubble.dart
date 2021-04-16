@@ -421,6 +421,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             },
             child: Icon(
               FontAwesomeIcons.redo,
+              color: DefaultTheme.primaryColor,
               size: 24,
             ),
           ),

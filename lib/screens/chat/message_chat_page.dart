@@ -107,7 +107,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
       });
     }
     if (topicInfo != null){
-      refreshTop(topicInfo.topicName);
+      refreshTop(topicInfo.topic);
     }
   }
 
@@ -179,7 +179,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
         if (owner == NKNClientCaller.currentChatId) {
           _updatePrivateTopicBlockHeight(topic);
         }
-        _channelBloc.add(ChannelMemberCountEvent(topicInfo.topicName));
+        _channelBloc.add(ChannelMemberCountEvent(topicInfo.topic));
       }
       else{
         NLog.w('Enter Public Topic___'+topicName);
@@ -218,6 +218,11 @@ class _MessageChatPageState extends State<MessageChatPage> {
     if (widget.arguments.runtimeType.toString() == 'ContactSchema'){
       contactInfo = widget.arguments;
       targetId = contactInfo.clientAddress;
+
+      _acceptNotification = false;
+      if (contactInfo.notificationOpen != null) {
+        _acceptNotification = contactInfo.notificationOpen;
+      }
     }
     else{
       topicInfo = widget.arguments;
@@ -679,8 +684,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
                     BlocBuilder<ChannelBloc, ChannelState>(
                         builder: (context, state) {
                           if (state is ChannelMembersState) {
-                            if (state.memberCount != null &&
-                                state.topicName == targetId) {
+                            if (state.memberCount != null && state.topicName == targetId) {
                               _topicCount = state.memberCount;
                             }
                           }
@@ -711,6 +715,10 @@ class _MessageChatPageState extends State<MessageChatPage> {
   }
 
   Widget _singleChatTopWidget(){
+    notiBellColor = DefaultTheme.primaryColor;
+    if (_acceptNotification == false) {
+      notiBellColor = Colors.white38;
+    }
     return Header(
         titleChild: GestureDetector(
           onTap: ()=> {
@@ -797,7 +805,6 @@ class _MessageChatPageState extends State<MessageChatPage> {
     }
     await contactInfo.setNotificationOpen(_acceptNotification);
 
-    NLog.w('deviceToken is____'+deviceToken.toString());
     var sendMsg = MessageSchema.fromSendData(
       from: NKNClientCaller.currentChatId,
       to: contactInfo.clientAddress,

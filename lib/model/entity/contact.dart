@@ -540,8 +540,8 @@ class ContactSchema {
     return false;
   }
 
-  Future<bool> setNotificationOpen(bool notificationOpen) async {
-    this.notificationOpen = notificationOpen;
+  Future<bool> setNotificationOpen(bool notificationEnabled) async {
+    notificationOpen = notificationEnabled;
     Map<String, dynamic> profileInfo = {
       'notification_open': notificationOpen?1:0,
       'updated_time': DateTime.now().millisecondsSinceEpoch,
