@@ -3,10 +3,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:nmobile/blocs/message/message_event.dart';
 import 'package:nmobile/blocs/message/message_state.dart';
+import 'package:nmobile/model/datacenter/message_data_center.dart';
 import 'package:nmobile/model/entity/contact.dart';
-import 'package:nmobile/model/entity/message.dart';
 import 'package:nmobile/model/entity/message_list_model.dart';
-import 'package:nmobile/model/message_model.dart';
 import 'package:nmobile/utils/nlog_util.dart';
 
 class MessageBloc extends Bloc<MessageEvent, MessageState> {
@@ -29,9 +28,31 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     else if (event is FetchMessageListEndEvent){
       yield FetchMessageListEndState();
     }
-    else if (event is UpdateSingleEvent){
-      ContactSchema contactInfo = await ContactSchema.fetchContactByAddress(event.targetId);
-      yield UpdateSingleChatState(event.targetId,contactInfo);
+    else if (event is UpdateMessageListEvent){
+      NLog.w('Refresh UpdateMessageListEvent'+event.targetId.toString());
+      MessageListModel model = await MessageListModel.updateMessageListModel(event.targetId);
+      NLog.w('Count__is______'+model.notReadCount.toString());
+      yield UpdateMessageListState(model);
     }
+    else if (event is MarkMessageListAsReadEvent){
+      MessageListModel model = await MessageListModel.markMessageListAsRead(event.model);
+      yield UpdateMessageListState(model);
+    }
+    // else if (event is MarkMessageListAsReadEvent){
+    //   yield MarkMessageListAsReadState(event.targetId);
+    // }
+    // else if (event is ReceiveMessageUpdateListEvent){
+    //   String targetId;
+    //   if (event.message.topic != null){
+    //     targetId = event.message.topic;
+    //   }
+    //   else{
+    //     targetId = event.message.from;
+    //   }
+    //   MessageListModel model = await MessageListModel.updateMessageListModel(targetId);
+    //   NLog.w('!!!!!!UpdateSingleMessageListState'+model.targetId.toString());
+    //   NLog.w('!!!!!!UpdateSingleMessageListState'+model.content.toString());
+    //   yield UpdateSingleMessageListState(model);
+    // }
   }
 }

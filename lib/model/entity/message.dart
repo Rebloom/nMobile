@@ -218,7 +218,7 @@ class MessageSchema extends Equatable {
     setMessageStatus(MessageStatus.MessageReceived);
   }
 
-  loadMedia(ChatBloc cBloc) async {
+  loadMedia() async {
     String publicKey = NKNClientCaller.currentChatId;
     var msg = jsonDecode(data);
 
@@ -265,9 +265,6 @@ class MessageSchema extends Equatable {
             double.parse(msg['options']['audioDuration'].toString());
         options['audioDuration'] = msg['options']['audioDuration'].toString();
       }
-    }
-    if (topic != null){
-      cBloc.add(RefreshMessageChatEvent(this));
     }
   }
 

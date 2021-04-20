@@ -5,7 +5,7 @@ import android.os.HandlerThread
 import android.os.Process
 import android.util.Log
 import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.common.GoogleApiAvailabilityLight
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -157,7 +157,7 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
      * Check Google Play Service
      */
     private fun onCheckGooglePlayServices(call: MethodCall, result: MethodChannel.Result) {
-        val code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(acty)
+        val code = GoogleApiAvailabilityLight.getInstance().isGooglePlayServicesAvailable(acty)
         var googleServiceOn:Boolean = false;
         if (code == ConnectionResult.SUCCESS) {
             // 支持Google服务
@@ -382,7 +382,7 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
         result.success(null)
 
         if (deviceToken.isNotEmpty()){
-            val code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(acty)
+            val code = GoogleApiAvailabilityLight.getInstance().isGooglePlayServicesAvailable(acty)
             if (code == ConnectionResult.SUCCESS && pushContent?.length > 0){
                 if (deviceToken?.length >= 32){
                     msgSendHandler.post {

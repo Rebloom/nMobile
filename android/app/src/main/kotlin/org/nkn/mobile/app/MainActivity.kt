@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.annotation.NonNull
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel

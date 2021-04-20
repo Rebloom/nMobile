@@ -12,6 +12,7 @@ import 'package:nmobile/blocs/auth/auth_bloc.dart';
 import 'package:nmobile/blocs/auth/auth_event.dart';
 import 'package:nmobile/blocs/auth/auth_state.dart';
 import 'package:nmobile/blocs/chat/chat_bloc.dart';
+import 'package:nmobile/blocs/chat/chat_event.dart';
 import 'package:nmobile/blocs/chat/chat_state.dart';
 
 import 'package:nmobile/blocs/message/message_bloc.dart';
@@ -35,13 +36,10 @@ import 'package:nmobile/model/datacenter/group_data_center.dart';
 import 'package:nmobile/model/entity/message_list_model.dart';
 import 'package:nmobile/model/entity/topic_repo.dart';
 import 'package:nmobile/model/popular_channel.dart';
-import 'package:nmobile/model/entity/chat.dart';
 import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/model/group_chat_helper.dart';
 import 'package:nmobile/model/entity/message.dart';
 import 'package:nmobile/screens/chat/authentication_helper.dart';
-import 'package:nmobile/screens/chat/channel.dart';
-import 'package:nmobile/screens/chat/message.dart';
 import 'package:nmobile/screens/chat/message_chat_page.dart';
 import 'package:nmobile/utils/extensions.dart';
 import 'package:nmobile/utils/image_utils.dart';
@@ -108,16 +106,6 @@ class MessageListPageState extends State<MessageListPage>
   void dispose() {
     _chatSubscription?.cancel();
     super.dispose();
-  }
-
-  _routeToGroupChatPage(topicName) async {
-    Topic topic = await GroupChatHelper.fetchTopicInfoByName(topicName);
-    Navigator.of(context).pushNamed(MessageChatPage.routeName,
-        arguments: topic).then((value) {
-      if (value == true) {
-        _startRefreshMessage();
-      }
-    });
   }
 
   _updateTopicBlock() async {
@@ -261,24 +249,40 @@ class MessageListPageState extends State<MessageListPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         if (authState is AuthToUserState) {
+          NLog.w('AuthToUserState is_____'+authState.toString());
           _updateTopicBlock();
+          _startRefreshMessage();
           _authBloc.add(AuthToFrontEvent());
         }
         return BlocBuilder<ChatBloc, ChatState>(
           builder: (context, chatState) {
             if (chatState is MessageUpdateState) {
-              _updateTopicBlock();
+              NLog.w('chatState is_____'+chatState.toString());
+              NLog.w('chatState target is_____'+chatState.target.toString());
+              if (chatState.message != null){
+                NLog.w('chatState message from is_____'+chatState.message.from.toString());
+                // _messageBloc.add(ReceiveMessageUpdateListEvent(chatState.message));
+              }
+              else{
+                NLog.w('chatState.message is_____null');
+              }
+              if (chatState.target == null){
+                _startRefreshMessage();
+              }
+              else{
+                _messageBloc.add(UpdateMessageListEvent(chatState.target));
+              }
             }
             return BlocBuilder<MessageBloc, MessageState>(
               builder: (context, messageState){
+                NLog.w('messageState state is______'+messageState.toString());
+                if (_messagesList == null){
+                  _messagesList = new List();
+                }
                 if (messageState is FetchMessageListState){
-                  if (_messagesList == null){
-                    _messagesList = new List();
-                  }
                   if (startIndex == 0){
                     _messagesList = messageState.messageList;
                   }
@@ -291,12 +295,34 @@ class MessageListPageState extends State<MessageListPage>
                   }
                   return _messageListWidget();
                 }
-                else if (messageState is FetchMessageListEndState){
-                  return _messageListWidget();
+                else if (messageState is UpdateMessageListState){
+                  NLog.w('UpdateMessageListState called');
+                  int replaceIndex = -1;
+                  for (int i = 0; i < _messagesList.length; i++){
+                    MessageListModel model = _messagesList[i];
+                    if (model.targetId == messageState.updateModel.targetId){
+                      _messagesList.removeAt(i);
+                      _messagesList.insert(i, messageState.updateModel);
+                      replaceIndex = i;
+                      break;
+                    }
+                  }
+                  if (replaceIndex > 0){
+                    /// todo Need refreshList
+                  }
                 }
-                else if (messageState is UpdateSingleChatState){
-                  MessageListModel message = _messagesList.where((messageModel) => messageModel.targetId == messageState.targetId).toList()[0];
-                  message.contact = messageState.contactInfo;
+                else if (messageState is MarkMessageListAsReadState){
+                  MessageListModel updateModel = messageState.model;
+                  for (int i = 0; i < _messagesList.length; i++){
+                    MessageListModel model = _messagesList[i];
+                    if (model.targetId == updateModel.targetId){
+                      _messagesList.removeAt(i);
+                      _messagesList.insert(i, updateModel);
+                      break;
+                    }
+                  }
+                }
+                if (_messagesList.length > 0){
                   return _messageListWidget();
                 }
                 return _noMessageWidget();
@@ -457,7 +483,8 @@ class MessageListPageState extends State<MessageListPage>
                                     type: ContactType.stranger,
                                     clientAddress: address);
                                 await contact.insertContact();
-                                _pushToSingleChat(contact);
+                                // _pushToSingleChat(contact);
+                                _routeToChatPage(contact.clientAddress, false);
                               }
                             } else {
                               widget.timerAuth.onCheckAuthGetPassword(context);
@@ -587,12 +614,12 @@ class MessageListPageState extends State<MessageListPage>
         callback: (success, e) async {
           EasyLoading.dismiss();
           if (success) {
-            _routeToGroupChatPage(popular.topic);
+            _routeToChatPage(popular.topic, true);
           } else {
             if (e
                 .toString()
                 .contains('duplicate subscription exist in block')) {
-              _routeToGroupChatPage(popular.topic);
+              _routeToChatPage(popular.topic, true);
             } else {
               showToast(e.toString());
             }
@@ -753,7 +780,7 @@ class MessageListPageState extends State<MessageListPage>
     }
     return InkWell(
       onTap: () async {
-        _routeToGroupChatPage(item.topic.topic);
+        _routeToChatPage(item.topic.topic, true);
       },
       child: Container(
         color: item.isTop ? Colours.light_fb : Colours.transparent,
@@ -866,24 +893,37 @@ class MessageListPageState extends State<MessageListPage>
     return Container();
   }
 
-  _pushToSingleChat(ContactSchema contactInfo) async{
+  _routeToChatPage(String targetId,bool group) async{
+    MessageListModel updateModel;
+    for (MessageListModel model in _messagesList){
+      if (model.targetId == targetId){
+        updateModel = model;
+        break;
+      }
+    }
+    var argument;
+    if (group){
+      Topic topic = await GroupChatHelper.fetchTopicInfoByName(targetId);
+      argument = topic;
+    }
+    else{
+      ContactSchema contactInfo = await ContactSchema.fetchContactByAddress(targetId);
+      argument = contactInfo;
+    }
     Navigator.of(context).pushNamed(MessageChatPage.routeName,
-        arguments: contactInfo);
-
-    // Navigator.of(context)
-    //     .pushNamed(MessageChatPage.routeName, arguments: contactInfo)
-    //     .then((v) async {
-    //   // Duration duration = Duration(milliseconds: 10);
-    //   //
-    //   //
-    //   // if (v == null){
-    //   //   duration = Duration(milliseconds: 350);
-    //   // }
-    //   // Timer(duration, () async{
-    //   //   _chatBloc.add(UpdateChatEvent(targetId));
-    //   // });
-    // });
+        arguments: argument).then((value) {
+      NLog.w('MarkMessageListAsReadEvent called____'+targetId);
+      if (updateModel != null){
+        _messageBloc.add(MarkMessageListAsReadEvent(updateModel));
+      }
+      // _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
+      if (value == true) {
+        NLog.w('_routeToGroupChatPage called____');
+        _startRefreshMessage();
+      }
+    });
   }
+
   Widget getSingleChatItemView(MessageListModel item) {
     LabelType bottomType = LabelType.bodySmall;
 
@@ -953,7 +993,8 @@ class MessageListPageState extends State<MessageListPage>
     }
     return InkWell(
       onTap: () {
-        _pushToSingleChat(contact);
+        _routeToChatPage(item.contact.clientAddress, false);
+        // _pushToSingleChat(item);
       },
       child: Container(
         color: item.isTop ? Colours.light_fb : Colours.transparent,

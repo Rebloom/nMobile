@@ -206,7 +206,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
     NLog.w('LoadMore called');
 
-    _chatBloc.add(RefreshMessageListEvent(target: targetId));
+    _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
     if (res != null) {
       startIndex += res.length;
       setState(() {
@@ -238,7 +238,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
     _channelBloc = BlocProvider.of<ChannelBloc>(context);
     _messageBloc = BlocProvider.of<MessageBloc>(context);
 
-    _chatBloc.add(RefreshMessageListEvent(target: targetId));
+    _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
 
     if (topicInfo != null){
       _channelBloc.add(ChannelMemberCountEvent(topicInfo.topicName));
@@ -346,7 +346,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
     LocalStorage.saveChatUnSendContentWithId(
         NKNClientCaller.currentChatId, targetId,
         content: _sendController.text);
-    _chatBloc.add(RefreshMessageListEvent());
+    _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
     _chatSubscription?.cancel();
     _scrollController?.dispose();
     _sendController?.dispose();
@@ -623,7 +623,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
         duration = Duration(milliseconds: 350);
       }
       Timer(duration, () async{
-        _messageBloc.add(UpdateSingleEvent(targetId));
+        _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
         setState(() {
           _acceptNotification = false;
           if (contactInfo.notificationOpen != null) {
@@ -807,7 +807,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
       showToast(NL10ns.of(context).close);
     }
     await contactInfo.setNotificationOpen(_acceptNotification);
-    _messageBloc.add(UpdateSingleEvent(targetId));
+    _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
 
     var sendMsg = MessageSchema.fromSendData(
       from: NKNClientCaller.currentChatId,

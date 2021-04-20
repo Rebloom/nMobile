@@ -66,14 +66,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       yield* _mapReceiveMessageToState(event);
     } else if (event is SendMessageEvent) {
       yield* _mapSendMessageToState(event);
-    } else if (event is RefreshMessageListEvent) {
-      var unReadCount = await MessageSchema.unReadMessages();
-      FlutterAppBadger.updateBadgeCount(unReadCount);
-      yield MessageUpdateState(target: event.target);
-    } else if (event is RefreshMessageChatEvent) {
-      yield MessageUpdateState(
-          target: event.message.to, message: event.message);
     }
+
+
+    // else if (event is RefreshMessageListEvent) {
+    //   var unReadCount = await MessageSchema.unReadMessages();
+    //   FlutterAppBadger.updateBadgeCount(unReadCount);
+    //
+    //   yield MessageUpdateState(target: event.targetId);
+    // } else if (event is RefreshMessageChatEvent) {
+    //   yield MessageUpdateState(
+    //       target: event.message.to, message: event.message);
+    // }
     // else if (event is UpdateChatEvent) {
     //   String targetId = event.targetId;
     //
@@ -82,9 +86,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     //   this.add(RefreshMessageListEvent(target: targetId));
     //   yield UpdateChatMessageState(res);
     // }
-    else if (event is GetAndReadMessages) {
-      yield* _mapGetAndReadMessagesToState(event);
-    }
+    // else if (event is GetAndReadMessages) {
+    //   yield* _mapGetAndReadMessagesToState(event);
+    // }
   }
 
   _resendMessage(MessageSchema message) async {
@@ -427,9 +431,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       nReceived.sendReceiptMessage();
 
       MessageDataCenter.removeOnePieceCombinedMessage(nReceived.msgId);
-
-      this.add(RefreshMessageListEvent());
-      this.add(RefreshMessageChatEvent(nReceived));
+      //
+      // this.add(RefreshMessageListEvent());
+      // this.add(RefreshMessageChatEvent(nReceived));
     }
   }
 
@@ -766,7 +770,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     if (message.contentType == ContentType.nknAudio ||
         message.contentType == ContentType.nknImage ||
         message.contentType == ContentType.media) {
-      message.loadMedia(this);
+      message.loadMedia();
     }
 
     if (message.topic != null) {
@@ -894,18 +898,25 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
             message.contentType.toString());
       }
     }
-    this.add(RefreshMessageListEvent());
-    yield MessageUpdateState(target: message.from, message: message);
+    String targetId = '';
+    if (message.topic != null && message.topic.length > 0){
+      targetId = message.topic;
+    }
+    else{
+      targetId = message.from;
+    }
+
+    yield MessageUpdateState(target: targetId, message: message);
   }
 
-  Stream<ChatState> _mapGetAndReadMessagesToState(
-      GetAndReadMessages event) async* {
-    if (event.target != null) {
-      MessageSchema.getAndReadTargetMessages(event.target);
-    }
-    NLog.w('From _mapGetAndReadMessagesToState');
-    yield MessageUpdateState(target: event.target);
-  }
+  // Stream<ChatState> _mapGetAndReadMessagesToState(
+  //     GetAndReadMessages event) async* {
+  //   if (event.target != null) {
+  //     MessageSchema.getAndReadTargetMessages(event.target);
+  //   }
+  //   NLog.w('From _mapGetAndReadMessagesToState');
+  //   yield MessageUpdateState(target: event.target);
+  // }
 
   /// change burn status
   _checkBurnOptions(MessageSchema message, ContactSchema contact) async {

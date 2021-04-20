@@ -1,5 +1,5 @@
 
-import 'package:nmobile/blocs/nkn_client_caller.dart';
+import 'package:flutter/material.dart';
 import 'package:nmobile/model/db/nkn_data_manager.dart';
 import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/model/entity/message.dart';
@@ -58,6 +58,59 @@ class MessageListModel {
       res.contact = await ContactSchema.fetchContactByAddress(res.targetId);
     }
     return res;
+  }
+
+  static Future<MessageListModel> updateMessageListModel(String targetId) async{
+    Database cdb = await NKNDataManager().currentDatabase();
+
+    var res = await cdb.query('Messages',
+      where: 'target_id = ? AND is_outbound = 0 AND is_read = 0 AND NOT type = "event:subscribe" AND NOT type = "nknOnePiece"',
+      whereArgs: [
+        targetId,
+      ],
+      orderBy: 'send_time desc',
+    );
+
+    if (res != null && res.length > 0){
+      NLog.w('!!!!!!!!!!!!!'+res.length.toString());
+      Map info = res[0];
+      NLog.w('updateMessageListToRead info is____'+info.toString());
+      MessageListModel model = await MessageListModel.parseEntity(info);
+      model.notReadCount = res.length;
+      NLog.w('updateMessageListToRead resLength is____'+res.length.toString());
+      return model;
+    }
+    else{
+      NLog.w('updateMessageListToRead notReadCount is 0');
+    }
+    return null;
+  }
+
+  static Future<MessageListModel> markMessageListAsRead(MessageListModel model) async{
+    Database cdb = await NKNDataManager().currentDatabase();
+
+    var res = await cdb.query('Messages',
+      where: 'target_id = ? AND is_outbound = 0 AND is_read = 0 AND NOT type = "event:subscribe" AND NOT type = "nknOnePiece"',
+      whereArgs: [
+        model.targetId,
+      ],
+      orderBy: 'send_time desc',
+    );
+
+    if (res != null && res.length > 0){
+      NLog.w('!!!!!!!!!!!!!markMessageListAsRead'+res.length.toString());
+      Map info = res[0];
+      NLog.w('markMessageListAsRead info is____'+info.toString());
+      MessageListModel model = await MessageListModel.parseEntity(info);
+      model.notReadCount = res.length;
+      NLog.w('markMessageListAsRead resLength is____'+res.length.toString());
+      return model;
+    }
+    else{
+      model.notReadCount = 0;
+      NLog.w('markMessageListAsRead notReadCount is 0');
+    }
+    return model;
   }
 
   static Future<List<MessageListModel>> getLastMessageList(
