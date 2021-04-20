@@ -155,9 +155,6 @@ class MessageDataCenter {
         }
       }
       model = await MessageModel.modelFromMessageFrom(messageItem);
-      NLog.w('messageItem1 is ______'+model.messageEntity.contentType.toString());
-      NLog.w('messageItem2 is ______'+model.messageEntity.content.toString());
-      NLog.w('messageItem3 is ______'+model.contactEntity.getShowName.toString());
 
       if (model != null) {
         messages.add(model);

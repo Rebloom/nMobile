@@ -1,4 +1,4 @@
-import 'package:nmobile/model/entity/message.dart';
+import 'package:nmobile/model/message_model.dart';
 
 abstract class ChatState {
   const ChatState();
@@ -10,7 +10,7 @@ class OnConnectState extends ChatState {}
 
 class MessageUpdateState extends ChatState {
   final String target;
-  final MessageSchema message;
+  final MessageModel message;
 
   const MessageUpdateState({this.target, this.message});
 }

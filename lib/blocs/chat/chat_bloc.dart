@@ -24,6 +24,7 @@ import 'package:nmobile/model/datacenter/message_data_center.dart';
 import 'package:nmobile/model/db/nkn_data_manager.dart';
 import 'package:nmobile/model/entity/subscriber_repo.dart';
 import 'package:nmobile/model/entity/topic_repo.dart';
+import 'package:nmobile/model/message_model.dart';
 import 'package:nmobile/plugins/nkn_wallet.dart';
 import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/model/group_chat_helper.dart';
@@ -182,7 +183,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         message.setMessageStatus(MessageStatus.MessageSendFail);
       }
 
-      yield MessageUpdateState(target: message.to, message: message);
+      MessageModel model = await MessageModel.modelFromMessageFrom(message);
+      yield MessageUpdateState(target: message.to, message: model);
       return;
     }
 
@@ -282,8 +284,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       }
     }
 
-    this.add(RefreshMessageListEvent());
-    yield MessageUpdateState(target: message.to, message: message);
+    MessageModel model = await MessageModel.modelFromMessageFrom(message);
+    yield MessageUpdateState(target: message.to, message: model);
   }
 
   _combineOnePieceMessage(MessageSchema onePieceMessage) async {
@@ -680,7 +682,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         dChatPcReceipt.contentType = ContentType.receipt;
         dChatPcReceipt.topic = null;
 
-        yield MessageUpdateState(target: dChatPcReceipt.from, message: dChatPcReceipt);
+        MessageModel model = await MessageModel.modelFromMessageFrom(dChatPcReceipt);
+        yield MessageUpdateState(target: dChatPcReceipt.from, message: model);
         return;
       }
     }
@@ -693,7 +696,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         oMessage.contentType = ContentType.receipt;
         oMessage.topic = null;
 
-        yield MessageUpdateState(target: oMessage.from, message: oMessage);
+        MessageModel model = await MessageModel.modelFromMessageFrom(oMessage);
+        yield MessageUpdateState(target: oMessage.from, message: model);
         return;
       }
     }
@@ -727,7 +731,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       /// If Received self Send
       if (message.from == NKNClientCaller.currentChatId) {
         MessageSchema oMessage = await message.receiptMessage();
-        yield MessageUpdateState(target: oMessage.from, message: oMessage);
+
+        MessageModel model = await MessageModel.modelFromMessageFrom(oMessage);
+        yield MessageUpdateState(target: oMessage.from, message: model);
         return;
       } else {
         NLog.w('_insertMessage__'+message.from.toString()+'!!!!!!');
@@ -906,7 +912,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       targetId = message.from;
     }
 
-    yield MessageUpdateState(target: targetId, message: message);
+    MessageModel model = await MessageModel.modelFromMessageFrom(message);
+    yield MessageUpdateState(target: targetId, message: model);
   }
 
   // Stream<ChatState> _mapGetAndReadMessagesToState(

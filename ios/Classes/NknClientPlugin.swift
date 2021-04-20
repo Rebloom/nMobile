@@ -366,7 +366,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
             msg.data = noDataString.data(using: .utf8)!
             NSLog("onMessageListening msg.data == nil")
         }
-
+        NSLog("ReceivedMessage____%@", String(data: msg.data!, encoding: String.Encoding.utf8)!)
         data["event"] = "onMessage"
         data["data"] = [
             "src": msg.src,
@@ -380,7 +380,6 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
         data["client"] = client1
         
         self.clientEventSink!(data)
-        NSLog("onMessageListening onMessage");
         
         self.onAsyncMessageReceive()
     }

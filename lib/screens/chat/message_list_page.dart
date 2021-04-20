@@ -263,7 +263,7 @@ class MessageListPageState extends State<MessageListPage>
               NLog.w('chatState is_____'+chatState.toString());
               NLog.w('chatState target is_____'+chatState.target.toString());
               if (chatState.message != null){
-                NLog.w('chatState message from is_____'+chatState.message.from.toString());
+                NLog.w('chatState message from is_____'+chatState.message.messageEntity.from.toString());
                 // _messageBloc.add(ReceiveMessageUpdateListEvent(chatState.message));
               }
               else{

@@ -15,7 +15,6 @@ import 'package:nmobile/blocs/chat/chat_event.dart';
 import 'package:nmobile/blocs/chat/chat_state.dart';
 import 'package:nmobile/blocs/contact/contact_bloc.dart';
 import 'package:nmobile/blocs/message/message_bloc.dart';
-import 'package:nmobile/blocs/message/message_event.dart';
 import 'package:nmobile/blocs/nkn_client_caller.dart';
 import 'package:nmobile/components/CommonUI.dart';
 import 'package:nmobile/components/box/body.dart';
@@ -256,39 +255,51 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
       _chatSubscription = _chatBloc.listen((state) {
         if (state is MessageUpdateState && mounted) {
-          MessageSchema updateMessage = state.message;
-
-          /// todo Update ReceiptMessage
-          // if (updateMessage != null) {
-          //   if (_messages != null && _messages.length > 0) {
-          //     if (updateMessage.contentType == ContentType.receipt) {
-          //       var receiptMessage = _messages.firstWhere(
-          //               (x) =>
-          //           x.msgId == updateMessage.content && x.isSendMessage(),
-          //           orElse: () => null);
-          //       if (receiptMessage != null) {
-          //         setState(() {
-          //           receiptMessage
-          //               .setMessageStatus(MessageStatus.MessageSendReceipt);
-          //         });
-          //       }
-          //       return;
-          //     }
-          //   }
-          // }
-          // else{
-          //   return;
-          // }
-
-          /// todo UpdateMessage to MessageReceived
-          // var receivedMessage = _messages.firstWhere(
-          //         (x) =>
-          //     x.msgId == updateMessage.msgId && x.isSendMessage() == false,
-          //     orElse: () => null);
-          // if (receivedMessage != null) {
-          //   receivedMessage.setMessageStatus(MessageStatus.MessageReceived);
-          //   return;
-          // }
+          if (state.message == null){
+            return;
+          }
+          MessageModel updateModel = state.message;
+          MessageSchema updateMessage = updateModel.messageEntity;
+          if (updateMessage == null){
+            return;
+          }
+          /// return of self send Message
+          for (MessageModel model in _messages){
+            MessageSchema message = model.messageEntity;
+            if (message.msgId == updateMessage.msgId && updateMessage.contentType != ContentType.receipt){
+              NLog.w('return of self send Message___'+message.content.toString());
+              return;
+            }
+          }
+          /// handle update of entityMessage(send/receive)
+          if (updateMessage.contentType == ContentType.text ||
+              updateMessage.contentType == ContentType.textExtension ||
+              updateMessage.contentType == ContentType.nknImage ||
+              updateMessage.contentType == ContentType.media ||
+              updateMessage.contentType == ContentType.nknAudio ||
+              updateMessage.contentType == ContentType.eventSubscribe) {
+            updateMessage.setMessageStatus(MessageStatus.MessageReceivedRead);
+            setState(() {
+              _messages.insert(0, updateModel);
+            });
+          }
+          /// handle update of receipt
+          else if (updateMessage.contentType == ContentType.receipt){
+            if (_messages != null && _messages.length > 0) {
+              if (updateMessage.contentType == ContentType.receipt) {
+                for (MessageModel model in _messages){
+                  MessageSchema message = model.messageEntity;
+                  if (message.msgId == updateMessage.content && message.isSendMessage()){
+                    setState(() {
+                      message.setMessageStatus(MessageStatus.MessageSendReceipt);
+                      NLog.w('ReceivedMessageReceipt____'+message.content.toString());
+                    });
+                  }
+                }
+                return;
+              }
+            }
+          }
 
           /// todo Add ContentType Messages
           // if (updateMessage.isSendMessage() == false &&
@@ -305,9 +316,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
           //       updateMessage.messageStatus = MessageStatus.MessageReceivedRead;
           //       _chatBloc.add(RefreshMessageListEvent());
           //     });
-          //     setState(() {
-          //       _messages.insert(0, updateMessage);
-          //     });
+
           //   }
           //   if (updateMessage.contentType == ContentType.eventSubscribe) {
           //     setState(() {
@@ -339,6 +348,27 @@ class _MessageChatPageState extends State<MessageChatPage> {
         });
     });
   }
+
+  // _deleteTickHandle() {
+  //   _deleteTick = Timer.periodic(Duration(seconds: 1), (timer) {
+  //     _messages.removeWhere((itemdad) {
+  //       if (item.deleteTime != null) {
+  //         int afterSeconds =
+  //             item.deleteTime.difference(DateTime.now()).inSeconds;
+  //         item.burnAfterSeconds = afterSeconds;
+  //         if (item.burnAfterSeconds < 0) {
+  //           item.deleteMessage();
+  //           return true;
+  //         } else {
+  //           return false;
+  //         }
+  //       } else {
+  //         return false;
+  //       }
+  //     });
+  //     setState(() {});
+  //   });
+  // }
 
   @override
   void dispose() {
@@ -395,7 +425,6 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
   _sendAudio(File audioFile, double audioDuration) async {
     String dest = targetId;
-
     var sendMsg = MessageSchema.fromSendData(
       from: NKNClientCaller.currentChatId,
       topic: dest,
