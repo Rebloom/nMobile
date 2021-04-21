@@ -25,6 +25,7 @@ class RefreshMessageListEvent extends ChatEvent{
   const RefreshMessageListEvent({this.targetId});
 }
 
+
 // class GetAndReadMessages extends ChatEvent {
 //   final String target;
 //

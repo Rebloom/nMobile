@@ -12,7 +12,6 @@ import 'package:nmobile/blocs/auth/auth_bloc.dart';
 import 'package:nmobile/blocs/auth/auth_event.dart';
 import 'package:nmobile/blocs/auth/auth_state.dart';
 import 'package:nmobile/blocs/chat/chat_bloc.dart';
-import 'package:nmobile/blocs/chat/chat_event.dart';
 import 'package:nmobile/blocs/chat/chat_state.dart';
 
 import 'package:nmobile/blocs/message/message_bloc.dart';
@@ -226,7 +225,6 @@ class MessageListPageState extends State<MessageListPage>
   _startRefreshMessage() async {
     _updateTopicBlock();
 
-    _messagesList.clear();
     startIndex = 0;
     _messageBloc.add(FetchMessageListEvent(startIndex));
     NLog.w('_startRefreshMessage called is____'+startIndex.toString());
@@ -253,24 +251,23 @@ class MessageListPageState extends State<MessageListPage>
       builder: (context, authState) {
         if (authState is AuthToUserState) {
           NLog.w('AuthToUserState is_____'+authState.toString());
-          _updateTopicBlock();
-          _startRefreshMessage();
+          startIndex = 0;
+          _messageBloc.add(FetchMessageListEvent(startIndex));
           _authBloc.add(AuthToFrontEvent());
         }
         return BlocBuilder<ChatBloc, ChatState>(
           builder: (context, chatState) {
             if (chatState is MessageUpdateState) {
-              NLog.w('chatState is_____'+chatState.toString());
-              NLog.w('chatState target is_____'+chatState.target.toString());
               if (chatState.message != null){
                 NLog.w('chatState message from is_____'+chatState.message.messageEntity.from.toString());
-                // _messageBloc.add(ReceiveMessageUpdateListEvent(chatState.message));
               }
               else{
                 NLog.w('chatState.message is_____null');
               }
               if (chatState.target == null){
                 _startRefreshMessage();
+
+                NLog.w('chatState.target is_____null');
               }
               else{
                 _messageBloc.add(UpdateMessageListEvent(chatState.target));
@@ -297,18 +294,23 @@ class MessageListPageState extends State<MessageListPage>
                 }
                 else if (messageState is UpdateMessageListState){
                   NLog.w('UpdateMessageListState called');
-                  int replaceIndex = -1;
-                  for (int i = 0; i < _messagesList.length; i++){
-                    MessageListModel model = _messagesList[i];
-                    if (model.targetId == messageState.updateModel.targetId){
-                      _messagesList.removeAt(i);
-                      _messagesList.insert(i, messageState.updateModel);
-                      replaceIndex = i;
-                      break;
-                    }
+                  if (messageState.updateModel == null){
+                    _startRefreshMessage();
                   }
-                  if (replaceIndex > 0){
-                    /// todo Need refreshList
+                  else{
+                    int replaceIndex = -1;
+                    for (int i = 0; i < _messagesList.length; i++){
+                      MessageListModel model = _messagesList[i];
+                      if (model.targetId == messageState.updateModel.targetId){
+                        _messagesList.removeAt(i);
+                        _messagesList.insert(i, messageState.updateModel);
+                        replaceIndex = i;
+                        break;
+                      }
+                    }
+                    if (replaceIndex > 0){
+                      /// todo Need refreshList
+                    }
                   }
                 }
                 else if (messageState is MarkMessageListAsReadState){
@@ -928,6 +930,10 @@ class MessageListPageState extends State<MessageListPage>
     LabelType bottomType = LabelType.bodySmall;
 
     ContactSchema contact = item.contact;
+    if (contact == null){
+      NLog.w('Target Id is null___'+item.targetId.toString());
+      return Container();
+    }
     Widget contentWidget;
     String draft = LocalStorage.getChatUnSendContentFromId(
         NKNClientCaller.currentChatId, item.targetId);

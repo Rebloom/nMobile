@@ -15,6 +15,7 @@ import 'package:nmobile/blocs/chat/chat_event.dart';
 import 'package:nmobile/blocs/chat/chat_state.dart';
 import 'package:nmobile/blocs/contact/contact_bloc.dart';
 import 'package:nmobile/blocs/message/message_bloc.dart';
+import 'package:nmobile/blocs/message/message_event.dart';
 import 'package:nmobile/blocs/nkn_client_caller.dart';
 import 'package:nmobile/components/CommonUI.dart';
 import 'package:nmobile/components/box/body.dart';
@@ -263,14 +264,22 @@ class _MessageChatPageState extends State<MessageChatPage> {
           if (updateMessage == null){
             return;
           }
-          /// return of self send Message
+
           for (MessageModel model in _messages){
             MessageSchema message = model.messageEntity;
+            /// return of self send Message
             if (message.msgId == updateMessage.msgId && updateMessage.contentType != ContentType.receipt){
               NLog.w('return of self send Message___'+message.content.toString());
               return;
             }
           }
+          if (state.target != null && updateMessage.contentType != ContentType.receipt){
+            if (state.target != targetId){
+              /// return of targetId not match
+              return;
+            }
+          }
+
           /// handle update of entityMessage(send/receive)
           if (updateMessage.contentType == ContentType.text ||
               updateMessage.contentType == ContentType.textExtension ||
@@ -278,9 +287,12 @@ class _MessageChatPageState extends State<MessageChatPage> {
               updateMessage.contentType == ContentType.media ||
               updateMessage.contentType == ContentType.nknAudio ||
               updateMessage.contentType == ContentType.eventSubscribe) {
-            updateMessage.setMessageStatus(MessageStatus.MessageReceivedRead);
+            if (updateMessage.isSendMessage() == false){
+              updateMessage.setMessageStatus(MessageStatus.MessageReceivedRead);
+            }
             setState(() {
               _messages.insert(0, updateModel);
+              _messageBloc.add(UpdateMessageListEvent(targetId));
             });
           }
           /// handle update of receipt
@@ -300,30 +312,44 @@ class _MessageChatPageState extends State<MessageChatPage> {
               }
             }
           }
+          else if (updateMessage.deleteAfterSeconds != null) {
+            /// not update other's setting
+            if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
+              ContactSchema chatContact = updateModel.contactEntity;
+              if (chatContact.options != null) {
+                if (chatContact.options.updateBurnAfterTime == null ||
+                    updateMessage.timestamp.millisecondsSinceEpoch >
+                        chatContact.options.updateBurnAfterTime) {
+                  chatContact.setBurnOptions(updateMessage.deleteAfterSeconds);
+                  setState(() {});
+                }
+              }
+            }
+          }
+          else if (updateMessage.contentType == ContentType.eventContactOptions){
+            /// not update other's setting
+            ContactSchema chatContact = updateModel.contactEntity;
+            if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
+              Map<String,dynamic> eventContent = jsonDecode(updateMessage.content);
+              if (eventContent['content'] != null && updateMessage.isSendMessage() == false) {
+                Map<String,dynamic> contactContent = eventContent['content'];
+                var deleteAfterSeconds = contactContent['deleteAfterSeconds'].toString();
 
-          /// todo Add ContentType Messages
-          // if (updateMessage.isSendMessage() == false &&
-          //     updateMessage.topic == targetId) {
-          //   _contactBloc.add(RefreshContactInfoEvent(updateMessage.from));
-          //
-          //   if (updateMessage.contentType == ContentType.text ||
-          //       updateMessage.contentType == ContentType.textExtension ||
-          //       updateMessage.contentType == ContentType.nknImage ||
-          //       updateMessage.contentType == ContentType.media ||
-          //       updateMessage.contentType == ContentType.nknAudio) {
-          //     updateMessage.messageStatus = MessageStatus.MessageReceived;
-          //     updateMessage.markMessageRead().then((n) {
-          //       updateMessage.messageStatus = MessageStatus.MessageReceivedRead;
-          //       _chatBloc.add(RefreshMessageListEvent());
-          //     });
-
-          //   }
-          //   if (updateMessage.contentType == ContentType.eventSubscribe) {
-          //     setState(() {
-          //       _messages.insert(0, updateMessage);
-          //     });
-          //   }
-          // }
+                if (chatContact.options.updateBurnAfterTime == null ||
+                    updateMessage.timestamp.millisecondsSinceEpoch >
+                        chatContact.options.updateBurnAfterTime) {
+                  if (contactContent['deleteAfterSeconds'] == null){
+                    NLog.w('deleteAfterSeconds is null');
+                    chatContact.setBurnOptions(null);
+                  }
+                  else{
+                    chatContact.setBurnOptions(int.parse(deleteAfterSeconds));
+                  }
+                  setState(() {});
+                }
+              }
+            }
+          }
         }
       });
 

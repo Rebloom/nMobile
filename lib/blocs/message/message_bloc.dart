@@ -31,28 +31,17 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     else if (event is UpdateMessageListEvent){
       NLog.w('Refresh UpdateMessageListEvent'+event.targetId.toString());
       MessageListModel model = await MessageListModel.updateMessageListModel(event.targetId);
-      NLog.w('Count__is______'+model.notReadCount.toString());
+      if (model == null){
+
+      }
+      else{
+        NLog.w('Count__is______'+model.notReadCount.toString());
+      }
       yield UpdateMessageListState(model);
     }
     else if (event is MarkMessageListAsReadEvent){
       MessageListModel model = await MessageListModel.markMessageListAsRead(event.model);
       yield UpdateMessageListState(model);
     }
-    // else if (event is MarkMessageListAsReadEvent){
-    //   yield MarkMessageListAsReadState(event.targetId);
-    // }
-    // else if (event is ReceiveMessageUpdateListEvent){
-    //   String targetId;
-    //   if (event.message.topic != null){
-    //     targetId = event.message.topic;
-    //   }
-    //   else{
-    //     targetId = event.message.from;
-    //   }
-    //   MessageListModel model = await MessageListModel.updateMessageListModel(targetId);
-    //   NLog.w('!!!!!!UpdateSingleMessageListState'+model.targetId.toString());
-    //   NLog.w('!!!!!!UpdateSingleMessageListState'+model.content.toString());
-    //   yield UpdateSingleMessageListState(model);
-    // }
   }
 }

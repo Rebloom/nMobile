@@ -52,6 +52,7 @@ class MessageListModel {
       }
     } else {
       if (res.targetId == null){
+        NLog.w('Wrong!!!!! error msg is___'+e.toString());
         return null;
       }
       res.isTop = await ContactSchema.getIsTop(res.targetId);
@@ -64,9 +65,14 @@ class MessageListModel {
     Database cdb = await NKNDataManager().currentDatabase();
 
     var res = await cdb.query('Messages',
-      where: 'target_id = ? AND is_outbound = 0 AND is_read = 0 AND NOT type = "event:subscribe" AND NOT type = "nknOnePiece"',
+      where: 'target_id = ? AND type = ? AND type = ? AND type = ? AND type = ? AND type = ?',
       whereArgs: [
         targetId,
+        ContentType.text,
+        ContentType.textExtension,
+        ContentType.media,
+        ContentType.nknAudio,
+        ContentType.nknImage
       ],
       orderBy: 'send_time desc',
     );
@@ -107,10 +113,24 @@ class MessageListModel {
       return model;
     }
     else{
-      model.notReadCount = 0;
-      NLog.w('markMessageListAsRead notReadCount is 0');
+      var res = await cdb.query('Messages',
+        where: 'target_id = ? AND type = ? AND type = ? AND type = ? AND type = ? AND type = ?',
+        whereArgs: [
+          model.targetId,
+          ContentType.text,
+          ContentType.textExtension,
+          ContentType.media,
+          ContentType.nknAudio,
+          ContentType.nknImage
+        ],
+        orderBy: 'send_time desc',
+      );
+      Map info = res[0];
+      MessageListModel readModel = await MessageListModel.parseEntity(info);
+      readModel.notReadCount = 0;
+      NLog.w('readModel notReadCount is 0+'+readModel.content.toString());
+      return readModel;
     }
-    return model;
   }
 
   static Future<List<MessageListModel>> getLastMessageList(

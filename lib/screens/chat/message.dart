@@ -193,48 +193,7 @@
 //           }
 //         }
 //
-//         if (updateMessage.deleteAfterSeconds != null) {
-//           /// not update other's setting
-//           if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
-//             if (chatContact.options != null) {
-//               if (chatContact.options.updateBurnAfterTime == null ||
-//                   updateMessage.timestamp.millisecondsSinceEpoch >
-//                       chatContact.options.updateBurnAfterTime) {
-//                 chatContact.setBurnOptions(updateMessage.deleteAfterSeconds);
-//                 setState(() {});
-//               }
-//             }
-//           }
-//           else{
-//             return;
-//           }
-//         }
-//         else if (updateMessage.contentType == ContentType.eventContactOptions){
-//           /// not update other's setting
-//           if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
-//             Map<String,dynamic> eventContent = jsonDecode(updateMessage.content);
-//             if (eventContent['content'] != null && updateMessage.isSendMessage() == false) {
-//               Map<String,dynamic> contactContent = eventContent['content'];
-//               var deleteAfterSeconds = contactContent['deleteAfterSeconds'].toString();
-//
-//               if (chatContact.options.updateBurnAfterTime == null ||
-//                   updateMessage.timestamp.millisecondsSinceEpoch >
-//                       chatContact.options.updateBurnAfterTime) {
-//                 if (contactContent['deleteAfterSeconds'] == null){
-//                   NLog.w('deleteAfterSeconds is null');
-//                   chatContact.setBurnOptions(null);
-//                 }
-//                 else{
-//                   chatContact.setBurnOptions(int.parse(deleteAfterSeconds));
-//                 }
-//                 setState(() {});
-//               }
-//             }
-//           }
-//           else{
-//             return;
-//           }
-//         }
+
 //
 //         if (updateMessage.isSendMessage()) {
 //           if (updateMessage.contentType == ContentType.eventContactOptions) {
