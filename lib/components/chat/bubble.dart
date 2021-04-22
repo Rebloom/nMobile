@@ -286,8 +286,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         );
     }
 
-    if (messageSchema.options != null &&
-        messageSchema.options['deleteAfterSeconds'] != null) {
+    if (messageSchema.burnAfterSeconds != null) {
       if (messageSchema.messageStatus != MessageStatus.MessageSendFail){
         burnWidget = Row(
           mainAxisSize: MainAxisSize.min,
@@ -300,7 +299,7 @@ class _ChatBubbleState extends State<ChatBubble> {
               Format.timeFromNowFormat(messageSchema.deleteTime ??
                   DateTime.now().add(Duration(
                       seconds:
-                      messageSchema.options['deleteAfterSeconds'] + 1))),
+                      messageSchema.burnAfterSeconds + 1))),
               type: LabelType.bodySmall,
               fontSize: DefaultTheme.iconTextFontSize,
               color: burnWidgetColor,
@@ -353,8 +352,8 @@ class _ChatBubbleState extends State<ChatBubble> {
                     decoration: decoration,
                     child: Container(
                       constraints: BoxConstraints(maxWidth: 272.w),
-                      child: Stack(
-                        alignment: Alignment.topLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: contentsWidget,
                       ),
                     ),

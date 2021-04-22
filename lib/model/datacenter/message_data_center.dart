@@ -141,17 +141,10 @@ class MessageDataCenter {
       if (!messageItem.isSendMessage() && messageItem.options != null) {
         NLog.w('messageItem.options is__'+messageItem.options.toString());
         if (messageItem.deleteTime == null &&
-            messageItem.options['deleteAfterSeconds'] != null) {
+            messageItem.burnAfterSeconds != null) {
           messageItem.deleteTime = DateTime.now().add(
-              Duration(seconds: messageItem.options['deleteAfterSeconds']));
-          cdb.update(
-            MessageSchema.tableName,
-            {
-              'delete_time': messageItem.deleteTime.millisecondsSinceEpoch,
-            },
-            where: 'msg_id = ?',
-            whereArgs: [messageItem.msgId],
-          );
+              Duration(seconds: messageItem.burnAfterSeconds));
+          await messageItem.updateDeleteTime();
         }
       }
       model = await MessageModel.modelFromMessageFrom(messageItem);
@@ -160,6 +153,7 @@ class MessageDataCenter {
         messages.add(model);
       }
     }
+    NLog.w('!!!!!messages.length is_______'+messages.length.toString());
     if (messages.length > 0) {
       return messages;
     }

@@ -67,28 +67,26 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       NLog.w('SendMessageEvent called!!!');
       yield* _mapSendMessageToState(event);
     }
+    else if (event is RefreshMessageListEvent) {
+      var unReadCount = await MessageSchema.unReadMessages();
+      FlutterAppBadger.updateBadgeCount(unReadCount);
+      yield MessageUpdateState(target: event.targetId);
+    } else if (event is RefreshMessageChatEvent) {
+      MessageModel model = await MessageModel.modelFromMessageFrom(event.message);
 
-
-    // else if (event is RefreshMessageListEvent) {
-    //   var unReadCount = await MessageSchema.unReadMessages();
-    //   FlutterAppBadger.updateBadgeCount(unReadCount);
-    //
-    //   yield MessageUpdateState(target: event.targetId);
-    // } else if (event is RefreshMessageChatEvent) {
-    //   yield MessageUpdateState(
-    //       target: event.message.to, message: event.message);
-    // }
-    // else if (event is UpdateChatEvent) {
-    //   String targetId = event.targetId;
-    //
-    //   var res =
-    //       await MessageSchema.getAndReadTargetMessages(targetId, limit: 20);
-    //   this.add(RefreshMessageListEvent(target: targetId));
-    //   yield UpdateChatMessageState(res);
-    // }
-    // else if (event is GetAndReadMessages) {
-    //   yield* _mapGetAndReadMessagesToState(event);
-    // }
+      String targetId;
+      if (event.message.topic != null && event.message.topic.length > 0){
+        targetId = event.message.topic;
+      }
+      if (event.message.isSendMessage()){
+        targetId = event.message.to;
+      }
+      else{
+        targetId = event.message.from;
+      }
+      NLog.w('RefreshMessageChatEvent targetId is____'+targetId.toString());
+      yield MessageUpdateState(target: targetId, message: model);
+    }
   }
 
   _resendMessage(MessageSchema message) async {
@@ -173,7 +171,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     await message.insertSendMessage();
 
     /// Handle GroupMessage Sending
-    NLog.w('Message topic is______'+message.topic.toString());
     if (message.topic != null) {
       try {
         message.setMessageStatus(MessageStatus.MessageSending);
@@ -190,14 +187,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
 
     /// Handle SingleMessage Sending
     else {
-      NLog.w('Message ContentType is______'+message.contentType.toString());
       if (message.contentType == ContentType.text ||
           message.contentType == ContentType.textExtension ||
           message.contentType == ContentType.nknAudio ||
           message.contentType == ContentType.media ||
           message.contentType == ContentType.nknImage ||
           message.contentType == ContentType.channelInvitation) {
-        NLog.w('Message Options is______'+message.content.toString());
+
         if (message.burnAfterSeconds > 0) {
           message.deleteTime = DateTime.now()
               .add(Duration(seconds: message.burnAfterSeconds));
@@ -414,11 +410,11 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         content: fullFile,
         audioFileDuration: onePieceMessage.audioFileDuration,
       );
-
-      nReceived.options = onePieceMessage.options;
-      if (onePieceMessage.burnAfterSeconds != null) {
-        nReceived.deleteTime = DateTime.now().add(
-            Duration(seconds: onePieceMessage.burnAfterSeconds));
+      if (onePieceMessage.options != null){
+        nReceived.options = onePieceMessage.options;
+        if (nReceived.options['deleteAfterSeconds'] != null){
+          nReceived.burnAfterSeconds = int.parse(nReceived.options['deleteAfterSeconds'].toString());
+        }
       }
 
       await nReceived.insertReceivedMessage();
@@ -427,9 +423,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       nReceived.sendReceiptMessage();
 
       MessageDataCenter.removeOnePieceCombinedMessage(nReceived.msgId);
-      //
-      // this.add(RefreshMessageListEvent());
-      // this.add(RefreshMessageChatEvent(nReceived));
+
+      this.add(RefreshMessageChatEvent(nReceived));
     }
   }
 

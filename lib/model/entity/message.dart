@@ -99,7 +99,13 @@ class MessageSchema extends Equatable {
         if (msg['timestamp'] != null) {
           timestamp = DateTime.fromMillisecondsSinceEpoch(msg['timestamp']);
         }
-        options = msg['options'];
+
+        if (msg['options'] != null){
+          options = msg['options'];
+          if (options['deleteAfterSeconds'] != null){
+            burnAfterSeconds = int.parse(options['deleteAfterSeconds'].toString());
+          }
+        }
         switch (contentType) {
           case ContentType.text:
           case ContentType.textExtension:
@@ -545,11 +551,8 @@ class MessageSchema extends Equatable {
         contentType == ContentType.media) {
       map['content'] = getLocalPath(accountPubkey, (content as File).path);
     } else if (contentType == ContentType.nknAudio) {
-      NLog.w('Message options is1____' + options.toString());
       options['audioDuration'] = audioFileDuration.toString();
-      NLog.w('Message options is2____' + options.toString());
       map['options'] = jsonEncode(options);
-      NLog.w('Message options is3____' + options.toString());
       map['content'] = getLocalPath(accountPubkey, (content as File).path);
 
       if (content == null) {
@@ -615,7 +618,10 @@ class MessageSchema extends Equatable {
         message.contentType == ContentType.media ||
         message.contentType == ContentType.nknAudio){
       if (message.options != null){
-        message.burnAfterSeconds = int.parse(message.options['deleteAfterSeconds'].toString());
+        if (message.options['deleteAfterSeconds'] != null){
+          message.burnAfterSeconds = int.parse(message.options['deleteAfterSeconds'].toString());
+        }
+        NLog.w('Message.options is____'+message.options.toString());
       }
     }
     if (message.contentType == ContentType.nknImage ||
@@ -775,55 +781,6 @@ class MessageSchema extends Equatable {
     return false;
   }
 
-  static Future<List<MessageSchema>> getAndReadTargetMessages(String targetId,
-      {int limit = 20, int skip = 0}) async {
-    Database cdb = await NKNDataManager().currentDatabase();
-    await cdb.update(
-      MessageSchema.tableName,
-      {
-        'is_read': 1,
-      },
-      where: 'target_id = ? AND is_outbound = 0 AND is_read = 0',
-      whereArgs: [targetId],
-    );
-    var res = await cdb.query(
-      MessageSchema.tableName,
-      columns: ['*'],
-      orderBy: 'send_time desc',
-      where: 'target_id = ? AND NOT type = ?',
-      whereArgs: [targetId, ContentType.nknOnePiece],
-      limit: limit,
-      offset: skip,
-    );
-
-    List<MessageSchema> messages = <MessageSchema>[];
-
-    for (var i = 0; i < res.length; i++) {
-      var messageItem = MessageSchema.parseEntity(res[i]);
-      if (!messageItem.isSendMessage() && messageItem.options != null) {
-        NLog.w('messageItem.options is__'+messageItem.options.toString());
-        if (messageItem.deleteTime == null &&
-            messageItem.options['deleteAfterSeconds'] != null) {
-          messageItem.deleteTime = DateTime.now().add(
-              Duration(seconds: messageItem.options['deleteAfterSeconds']));
-          cdb.update(
-            MessageSchema.tableName,
-            {
-              'delete_time': messageItem.deleteTime.millisecondsSinceEpoch,
-            },
-            where: 'msg_id = ?',
-            whereArgs: [messageItem.msgId],
-          );
-        }
-      }
-      messages.add(messageItem);
-    }
-    if (messages.length > 0) {
-      return messages;
-    }
-    return null;
-  }
-
   static Future<int> unReadMessages() async {
     Database cdb = await NKNDataManager().currentDatabase();
     String myChatId = NKNClientCaller.currentChatId;
@@ -953,6 +910,25 @@ class MessageSchema extends Equatable {
       NLog.w('updateMessageStatus success!__' + status.toString());
     }
   }
+
+  // Future<int> updateDeleteTime() async{
+  //   if (deleteTime == null &&
+  //       burnAfterSeconds != null) {
+  //     Database cdb = await NKNDataManager().currentDatabase();
+  //     deleteTime = DateTime.now().add(
+  //         Duration(seconds: burnAfterSeconds));
+  //     var count = cdb.update(
+  //       MessageSchema.tableName,
+  //       {
+  //         'delete_time': deleteTime.millisecondsSinceEpoch,
+  //       },
+  //       where: 'msg_id = ?',
+  //       whereArgs: [msgId],
+  //     );
+  //     return count;
+  //   }
+  //   return 0;
+  // }
 
   Future<int> markMessageRead() async {
     Database cdb = await NKNDataManager().currentDatabase();

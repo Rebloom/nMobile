@@ -25,30 +25,7 @@ class RefreshMessageListEvent extends ChatEvent{
   const RefreshMessageListEvent({this.targetId});
 }
 
-
-// class GetAndReadMessages extends ChatEvent {
-//   final String target;
-//
-//   const GetAndReadMessages({this.target});
-// }
-//
-//
-// class MarkMessageListAsReadEvent extends MessageEvent{
-//   final String targetId;
-//   const MarkMessageListAsReadEvent(this.targetId);
-// }
-//
-// class RefreshMessageListEvent extends MessageEvent {
-//   final String targetId;
-//   const RefreshMessageListEvent({this.targetId});
-// }
-//
-// class ReceivedMessageChatEvent extends MessageEvent{
-//   final MessageSchema message;
-//   const ReceivedMessageChatEvent(this.message);
-// }
-//
-// class RefreshMessageChatEvent extends MessageEvent {
-//   final MessageSchema message;
-//   const RefreshMessageChatEvent(this.message);
-// }
+class RefreshMessageChatEvent extends ChatEvent {
+  final MessageSchema message;
+  const RefreshMessageChatEvent(this.message);
+}

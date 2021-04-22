@@ -295,6 +295,11 @@ class _MessageChatPageState extends State<MessageChatPage> {
             if (updateMessage.isSendMessage() == false){
               updateMessage.setMessageStatus(MessageStatus.MessageReceivedRead);
             }
+            if (updateMessage.burnAfterSeconds != null) {
+              updateMessage.deleteTime = DateTime.now().add(
+                  Duration(seconds: updateMessage.burnAfterSeconds));
+              updateMessage.updateDeleteTime();
+            }
             setState(() {
               _messages.insert(0, updateModel);
               _messageBloc.add(UpdateMessageListEvent(targetId));
