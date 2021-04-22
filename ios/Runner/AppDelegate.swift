@@ -51,9 +51,10 @@ import Nkn
         FlutterMethodChannel(name: "org.nkn.nmobile/native/common", binaryMessenger: controller.binaryMessenger)
             .setMethodCallHandler { (call, result) in
                   if "isActive" == call.method{
-                     result(application.applicationState != UIApplication.State.background)
-                  }else{
-                      result(FlutterMethodNotImplemented)
+                    result(application.applicationState != UIApplication.State.background)
+                  }
+                  else{
+                    result(FlutterMethodNotImplemented)
                   }
             }
         
@@ -93,7 +94,7 @@ import Nkn
     }
     
     func registerGoogleFCM(){
-        //注册谷歌Firebase Messaging
+        //Register Google Firebase Messaging
         FirebaseApp.configure()
         Messaging.messaging().delegate = self
 
@@ -181,3 +182,4 @@ import Nkn
         UIApplication.shared.registerForRemoteNotifications()
     }
 }
+

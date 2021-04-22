@@ -227,7 +227,7 @@ class BurnViewPageState extends State<BurnViewPage> {
     } else {
       await widget.contact.setBurnOptions(null);
     }
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
       from: NKNClientCaller.currentChatId,
       to: widget.contact.clientAddress,
       contentType: ContentType.eventContactOptions,

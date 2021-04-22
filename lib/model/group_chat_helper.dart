@@ -126,7 +126,7 @@ class GroupChatHelper {
       if (nonEmpty(hash) && hash.length >= 32) {
         await TopicRepo().delete(topicName);
 
-        var sendMsg = MessageSchema.fromSendData(
+        var sendMsg = MessageSchema.formSendMessage(
           from: NKNClientCaller.currentChatId,
           topic: topicName,
           contentType: ContentType.eventUnsubscribe,

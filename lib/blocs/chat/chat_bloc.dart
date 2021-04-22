@@ -64,6 +64,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     } else if (event is ReceiveMessageEvent) {
       yield* _mapReceiveMessageToState(event);
     } else if (event is SendMessageEvent) {
+      NLog.w('SendMessageEvent called!!!');
       yield* _mapSendMessageToState(event);
     }
 
@@ -172,6 +173,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     await message.insertSendMessage();
 
     /// Handle GroupMessage Sending
+    NLog.w('Message topic is______'+message.topic.toString());
     if (message.topic != null) {
       try {
         message.setMessageStatus(MessageStatus.MessageSending);
@@ -188,16 +190,17 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
 
     /// Handle SingleMessage Sending
     else {
+      NLog.w('Message ContentType is______'+message.contentType.toString());
       if (message.contentType == ContentType.text ||
           message.contentType == ContentType.textExtension ||
           message.contentType == ContentType.nknAudio ||
           message.contentType == ContentType.media ||
           message.contentType == ContentType.nknImage ||
           message.contentType == ContentType.channelInvitation) {
-        if (message.options != null &&
-            message.options['deleteAfterSeconds'] != null) {
+        NLog.w('Message Options is______'+message.content.toString());
+        if (message.burnAfterSeconds > 0) {
           message.deleteTime = DateTime.now()
-              .add(Duration(seconds: message.options['deleteAfterSeconds']));
+              .add(Duration(seconds: message.burnAfterSeconds));
           await message.updateDeleteTime();
         }
         _checkIfSendNotification(message.to, '');
@@ -315,7 +318,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       'total': onePieceMessage.total,
       'index': onePieceMessage.index,
       'parentType': onePieceMessage.parentType,
-      'deleteAfterSeconds': onePieceMessage.deleteAfterSeconds,
+      'deleteAfterSeconds': onePieceMessage.burnAfterSeconds,
       'audioDuration': onePieceMessage.audioFileDuration,
     };
     await onePieceMessage.insertOnePieceMessage();
@@ -401,12 +404,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       File fullFile = File(join(fullPath, name + '$extension'));
       fullFile.writeAsBytes(fBytes, flush: true);
 
-      Duration deleteAfterSeconds;
-      if (onePieceMessage.deleteAfterSeconds != null) {
-        deleteAfterSeconds =
-            Duration(seconds: onePieceMessage.deleteAfterSeconds);
-      }
-
       MessageSchema nReceived = MessageSchema.formReceivedMessage(
         topic: onePieceMessage.topic,
         msgId: onePieceMessage.msgId,
@@ -419,10 +416,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       );
 
       nReceived.options = onePieceMessage.options;
-      if (onePieceMessage.options != null &&
-          onePieceMessage.options['deleteAfterSeconds'] != null) {
+      if (onePieceMessage.burnAfterSeconds != null) {
         nReceived.deleteTime = DateTime.now().add(
-            Duration(seconds: onePieceMessage.options['deleteAfterSeconds']));
+            Duration(seconds: onePieceMessage.burnAfterSeconds));
       }
 
       await nReceived.insertReceivedMessage();
@@ -439,18 +435,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
 
   _sendOnePiece(List mpList, MessageSchema parentMessage) async {
     for (int index = 0; index < mpList.length; index++) {
-      // String content = mpList[index];
-      NLog.w('FileType is___'+mpList[index].runtimeType.toString());
       Uint8List fileP = mpList[index];
-      NLog.w('fileP is___'+fileP.length.toString());
 
-      Duration deleteAfterSeconds;
+      int deleteAfterSeconds;
       if (parentMessage.topic == null){
         ContactSchema contact = await _checkContactIfExists(parentMessage.to);
         if (contact?.options != null) {
           if (contact?.options?.deleteAfterSeconds != null) {
-            deleteAfterSeconds =
-                Duration(seconds: contact.options.deleteAfterSeconds);
+            deleteAfterSeconds = contact.options.deleteAfterSeconds;
           }
         }
       }
@@ -461,13 +453,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
           '__' +
           parentMessage.bytesLength.toString());
 
-      Duration duration = Duration(milliseconds: index * 100);
+      String toValue;
+      String topicValue;
+      if (parentMessage.topic != null && parentMessage.topic.length > 0){
+        topicValue = parentMessage.topic;
+        toValue = null;
+      }
+      else{
+        toValue = parentMessage.to;
+      }
+      Duration duration = Duration(milliseconds: index * 10);
       Timer(duration, () async {
-        var nknOnePieceMessage = MessageSchema.fromSendData(
-          topic: parentMessage.topic,
+        var nknOnePieceMessage = MessageSchema.formSendMessage(
           msgId: parentMessage.msgId,
           from: parentMessage.from,
-          to: parentMessage.to,
+          to: toValue,
+          topic: topicValue,
           parentType: parentMessage.contentType,
           content: content,
           contentType: ContentType.nknOnePiece,
@@ -475,25 +476,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
           total: parentMessage.total,
           index: index,
           bytesLength: parentMessage.bytesLength,
-          deleteAfterSeconds: deleteAfterSeconds,
+          burnAfterSeconds: deleteAfterSeconds,
           audioFileDuration: parentMessage.audioFileDuration,
         );
-        if (parentMessage.topic != null){
-          nknOnePieceMessage = MessageSchema.fromSendData(
-            topic: parentMessage.topic,
-            msgId: parentMessage.msgId,
-            from: parentMessage.from,
-            parentType: parentMessage.contentType,
-            content: content,
-            contentType: ContentType.nknOnePiece,
-            parity: parentMessage.parity,
-            total: parentMessage.total,
-            index: index,
-            bytesLength: parentMessage.bytesLength,
-            deleteAfterSeconds: deleteAfterSeconds,
-            audioFileDuration: parentMessage.audioFileDuration,
-          );
-        }
         NLog.w('Send OnePiece with index__' +
             index.toString() +
             '__' +
@@ -532,10 +517,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     message.total = total;
     message.parity = parity;
     message.bytesLength = base64Content.length;
-
-    NLog.w('fileBytes.length is__' + fileBytes.length.toString());
-    NLog.w('base64Content Length is____' + base64Content.length.toString());
-    NLog.w('SendOnePieceTopic is______'+message.topic.toString());
 
     var dataList =
         await NKNClientCaller.intoPieces(base64Content, total, parity);
@@ -927,7 +908,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   _checkBurnOptions(MessageSchema message, ContactSchema contact) async {
     if (message.topic != null) return;
 
-    if (message.deleteAfterSeconds != null) {
+    if (message.burnAfterSeconds != null) {
       if (message.contentType != ContentType.eventContactOptions){
         if (contact.options == null){
           NLog.w('Wrong!!!!! _checkBurnOptions contact.options is null');
@@ -936,13 +917,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
             message.timestamp.millisecondsSinceEpoch >
                 contact.options.updateBurnAfterTime) {
 
-          await contact.setBurnOptions(message.deleteAfterSeconds);
+          await contact.setBurnOptions(message.burnAfterSeconds);
         }
       }
       NLog.w('contact.options is____' + contact.options.toJson());
     }
     NLog.w('!!!!contact._checkBurnOptions ___' +
-        message.deleteAfterSeconds.toString());
+        message.burnAfterSeconds.toString());
     contactBloc.add(RefreshContactInfoEvent(contact.clientAddress));
   }
 

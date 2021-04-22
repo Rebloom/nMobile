@@ -169,7 +169,7 @@ class _ContactScreenState extends State<ContactScreen> {
       NLog.w('_saveAndSendBurnMessage_____!!!!' + _burnValue.toString());
       await currentUser.setBurnOptions(_burnValue);
     }
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
       from: NKNClientCaller.currentChatId,
       to: currentUser.clientAddress,
       contentType: ContentType.eventContactOptions,
@@ -206,7 +206,7 @@ class _ContactScreenState extends State<ContactScreen> {
     }
     currentUser.setNotificationOpen(_acceptNotification);
 
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
       from: NKNClientCaller.currentChatId,
       to: currentUser.clientAddress,
       contentType: ContentType.eventContactOptions,

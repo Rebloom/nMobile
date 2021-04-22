@@ -3,8 +3,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:nmobile/blocs/message/message_event.dart';
 import 'package:nmobile/blocs/message/message_state.dart';
-import 'package:nmobile/model/datacenter/message_data_center.dart';
-import 'package:nmobile/model/entity/contact.dart';
 import 'package:nmobile/model/entity/message_list_model.dart';
 import 'package:nmobile/utils/nlog_util.dart';
 
@@ -29,18 +27,10 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       yield FetchMessageListEndState();
     }
     else if (event is UpdateMessageListEvent){
-      NLog.w('Refresh UpdateMessageListEvent'+event.targetId.toString());
       MessageListModel model = await MessageListModel.updateMessageListModel(event.targetId);
       if (model == null){
-
+        NLog.w('UpdateMessageListEvent Count is____null');
       }
-      else{
-        NLog.w('Count__is______'+model.notReadCount.toString());
-      }
-      yield UpdateMessageListState(model);
-    }
-    else if (event is MarkMessageListAsReadEvent){
-      MessageListModel model = await MessageListModel.markMessageListAsRead(event.model);
       yield UpdateMessageListState(model);
     }
   }

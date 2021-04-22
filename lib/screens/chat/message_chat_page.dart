@@ -244,6 +244,8 @@ class _MessageChatPageState extends State<MessageChatPage> {
       _channelBloc.add(ChannelMemberCountEvent(topicInfo.topicName));
     }
 
+    _deleteTickHandle();
+
     Future.delayed(Duration(milliseconds: 200), () {
       initAsync();
       _sendFocusNode.addListener(() {
@@ -265,6 +267,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
             return;
           }
 
+          NLog.w('UpdateMessage is_____'+updateMessage.contentType.toString());
           for (MessageModel model in _messages){
             MessageSchema message = model.messageEntity;
             /// return of self send Message
@@ -276,6 +279,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
           if (state.target != null && updateMessage.contentType != ContentType.receipt){
             if (state.target != targetId){
               /// return of targetId not match
+              NLog.w('return of targetId not match'+state.target.toString());
               return;
             }
           }
@@ -286,7 +290,8 @@ class _MessageChatPageState extends State<MessageChatPage> {
               updateMessage.contentType == ContentType.nknImage ||
               updateMessage.contentType == ContentType.media ||
               updateMessage.contentType == ContentType.nknAudio ||
-              updateMessage.contentType == ContentType.eventSubscribe) {
+              updateMessage.contentType == ContentType.eventSubscribe ||
+              updateMessage.contentType == ContentType.eventContactOptions) {
             if (updateMessage.isSendMessage() == false){
               updateMessage.setMessageStatus(MessageStatus.MessageReceivedRead);
             }
@@ -312,7 +317,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
               }
             }
           }
-          else if (updateMessage.deleteAfterSeconds != null) {
+          else if (updateMessage.burnAfterSeconds != null) {
             /// not update other's setting
             if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
               ContactSchema chatContact = updateModel.contactEntity;
@@ -320,7 +325,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
                 if (chatContact.options.updateBurnAfterTime == null ||
                     updateMessage.timestamp.millisecondsSinceEpoch >
                         chatContact.options.updateBurnAfterTime) {
-                  chatContact.setBurnOptions(updateMessage.deleteAfterSeconds);
+                  chatContact.setBurnOptions(updateMessage.burnAfterSeconds);
                   setState(() {});
                 }
               }
@@ -375,26 +380,22 @@ class _MessageChatPageState extends State<MessageChatPage> {
     });
   }
 
-  // _deleteTickHandle() {
-  //   _deleteTick = Timer.periodic(Duration(seconds: 1), (timer) {
-  //     _messages.removeWhere((itemdad) {
-  //       if (item.deleteTime != null) {
-  //         int afterSeconds =
-  //             item.deleteTime.difference(DateTime.now()).inSeconds;
-  //         item.burnAfterSeconds = afterSeconds;
-  //         if (item.burnAfterSeconds < 0) {
-  //           item.deleteMessage();
-  //           return true;
-  //         } else {
-  //           return false;
-  //         }
-  //       } else {
-  //         return false;
-  //       }
-  //     });
-  //     setState(() {});
-  //   });
-  // }
+  _deleteTickHandle() {
+    _deleteTick = Timer.periodic(Duration(seconds: 1), (timer) {
+      for (MessageModel model in _messages){
+        MessageSchema message = model.messageEntity;
+        if (message.deleteTime != null){
+          message.showBurnAfterSeconds = message.deleteTime.difference(DateTime.now()).inSeconds;
+          if (message.showBurnAfterSeconds < 0){
+            NLog.w('_deleteTickHandle delete BurnAfterReading Message'+message.content.toString());
+            message.deleteMessage();
+            initAsync();
+          }
+        }
+      }
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -412,6 +413,41 @@ class _MessageChatPageState extends State<MessageChatPage> {
     super.dispose();
   }
 
+  _sendMessageFormat(MessageSchema sendMsg) async{
+    if (contactInfo?.options != null) {
+      if (contactInfo?.options?.deleteAfterSeconds != null) {
+        if (sendMsg.contentType == ContentType.text){
+          sendMsg.contentType = ContentType.textExtension;
+        }
+        if (sendMsg.options == null){
+          sendMsg.options = {};
+        }
+        sendMsg.options['deleteAfterSeconds'] = contactInfo.options.deleteAfterSeconds.toString();
+        sendMsg.burnAfterSeconds = contactInfo.options.deleteAfterSeconds;
+      }
+    }
+    if (contactInfo != null){
+      sendMsg.to = contactInfo.clientAddress;
+    }
+    if (topicInfo != null){
+      sendMsg.topic = topicInfo.topic;
+    }
+  }
+
+  _sendMessage(MessageSchema sendMsg) async{
+    try {
+      MessageModel model = await MessageModel.modelFromMessageFrom(sendMsg);
+      setState(() {
+        _messages.insert(0, model);
+      });
+      _chatBloc.add(SendMessageEvent(sendMsg));
+    } catch (e) {
+      if (e != null) {
+        NLog.w('_sendMessage E' + e.toString());
+      }
+    }
+  }
+
   _sendText() async {
     LocalStorage.saveChatUnSendContentWithId(
         NKNClientCaller.currentChatId, targetId);
@@ -422,73 +458,34 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
     String contentType = ContentType.text;
 
-    var sendMsg = MessageSchema.fromSendData(
+    MessageSchema sendMsg = MessageSchema.formSendMessage(
         from: NKNClientCaller.currentChatId,
-        to: targetId,
         content: text,
-        contentType: contentType);
-    if (topicInfo != null){
-      sendMsg = MessageSchema.fromSendData(
-          from: NKNClientCaller.currentChatId,
-          topic: topicInfo.topicName,
-          content: text,
-          contentType: contentType);
-    }
-
-    try {
-      sendMsg.messageStatus = MessageStatus.MessageSending;
-      MessageModel model = await MessageModel.modelFromMessageFrom(sendMsg);
-      setState(() {
-        _messages.insert(0, model);
-      });
-      _chatBloc.add(SendMessageEvent(sendMsg));
-    } catch (e) {
-      if (e != null) {
-        NLog.w('_sendText E' + e.toString());
-      }
-    }
+        contentType: contentType,
+    );
+    _sendMessageFormat(sendMsg);
+    _sendMessage(sendMsg);
   }
 
   _sendAudio(File audioFile, double audioDuration) async {
-    String dest = targetId;
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
       from: NKNClientCaller.currentChatId,
-      topic: dest,
       content: audioFile,
       contentType: ContentType.nknAudio,
       audioFileDuration: audioDuration,
     );
-    try {
-      MessageModel model = await MessageModel.modelFromMessageFrom(sendMsg);
-      setState(() {
-        _messages.insert(0, model);
-      });
-      _chatBloc.add(SendMessageEvent(sendMsg));
-    } catch (e) {
-      if (e != null) {
-        NLog.w('_sendAudio E:' + e.toString());
-      }
-    }
+    _sendMessageFormat(sendMsg);
+    _sendMessage(sendMsg);
   }
 
   _sendImage(File savedImg) async {
-    String dest = targetId;
-
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
       from: NKNClientCaller.currentChatId,
-      topic: dest,
       content: savedImg,
       contentType: ContentType.media,
     );
-    try {
-      _chatBloc.add(SendMessageEvent(sendMsg));
-      MessageModel model = await MessageModel.modelFromMessageFrom(sendMsg);
-      setState(() {
-        _messages.insert(0, model);
-      });
-    } catch (e) {
-      NLog.w('Send Image Message E:' + e.toString());
-    }
+    _sendMessageFormat(sendMsg);
+    _sendMessage(sendMsg);
   }
 
   getImageFile({@required ImageSource source}) async {
@@ -864,7 +861,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
     await contactInfo.setNotificationOpen(_acceptNotification);
     _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
 
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
       from: NKNClientCaller.currentChatId,
       to: contactInfo.clientAddress,
       contentType: ContentType.eventContactOptions,

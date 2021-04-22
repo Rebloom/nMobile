@@ -1,7 +1,4 @@
 
-import 'package:nmobile/model/entity/message.dart';
-import 'package:nmobile/model/entity/message_list_model.dart';
-
 abstract class MessageEvent {
   const MessageEvent();
 }
@@ -18,9 +15,4 @@ class FetchMessageListEndEvent extends MessageEvent{
 class UpdateMessageListEvent extends MessageEvent{
   final String targetId;
   const UpdateMessageListEvent(this.targetId);
-}
-
-class MarkMessageListAsReadEvent extends MessageEvent{
-  final MessageListModel model;
-  const MarkMessageListAsReadEvent(this.model);
 }

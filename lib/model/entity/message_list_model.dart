@@ -65,7 +65,7 @@ class MessageListModel {
     Database cdb = await NKNDataManager().currentDatabase();
 
     var res = await cdb.query('Messages',
-      where: 'target_id = ? AND type = ? AND type = ? AND type = ? AND type = ? AND type = ?',
+      where: 'target_id = ? AND is_outbound = 0 AND is_read = 0 AND type = ? AND type = ? AND type = ? AND type = ? AND type = ?',
       whereArgs: [
         targetId,
         ContentType.text,
@@ -78,7 +78,6 @@ class MessageListModel {
     );
 
     if (res != null && res.length > 0){
-      NLog.w('!!!!!!!!!!!!!'+res.length.toString());
       Map info = res[0];
       NLog.w('updateMessageListToRead info is____'+info.toString());
       MessageListModel model = await MessageListModel.parseEntity(info);
@@ -87,50 +86,26 @@ class MessageListModel {
       return model;
     }
     else{
-      NLog.w('updateMessageListToRead notReadCount is 0');
-    }
-    return null;
-  }
-
-  static Future<MessageListModel> markMessageListAsRead(MessageListModel model) async{
-    Database cdb = await NKNDataManager().currentDatabase();
-
-    var res = await cdb.query('Messages',
-      where: 'target_id = ? AND is_outbound = 0 AND is_read = 0 AND NOT type = "event:subscribe" AND NOT type = "nknOnePiece"',
-      whereArgs: [
-        model.targetId,
-      ],
-      orderBy: 'send_time desc',
-    );
-
-    if (res != null && res.length > 0){
-      NLog.w('!!!!!!!!!!!!!markMessageListAsRead'+res.length.toString());
-      Map info = res[0];
-      NLog.w('markMessageListAsRead info is____'+info.toString());
-      MessageListModel model = await MessageListModel.parseEntity(info);
-      model.notReadCount = res.length;
-      NLog.w('markMessageListAsRead resLength is____'+res.length.toString());
-      return model;
-    }
-    else{
-      var res = await cdb.query('Messages',
+      var countResult = await cdb.query('Messages',
         where: 'target_id = ? AND type = ? AND type = ? AND type = ? AND type = ? AND type = ?',
         whereArgs: [
-          model.targetId,
+          targetId,
           ContentType.text,
           ContentType.textExtension,
           ContentType.media,
           ContentType.nknAudio,
-          ContentType.nknImage
+          ContentType.nknImage,
         ],
         orderBy: 'send_time desc',
       );
-      Map info = res[0];
-      MessageListModel readModel = await MessageListModel.parseEntity(info);
-      readModel.notReadCount = 0;
-      NLog.w('readModel notReadCount is 0+'+readModel.content.toString());
-      return readModel;
+      if (countResult != null && countResult.length > 0){
+        Map info = countResult[0];
+        MessageListModel model = await MessageListModel.parseEntity(info);
+        model.notReadCount = 0;
+        return model;
+      }
     }
+    return null;
   }
 
   static Future<List<MessageListModel>> getLastMessageList(
@@ -144,7 +119,10 @@ class MessageListModel {
     '${MessageSchema.tableName} as m',
       columns: [
         'm.*',
-        '(SELECT COUNT(id) from ${MessageSchema.tableName} WHERE target_id = m.target_id AND is_outbound = 0 AND is_read = 0 AND NOT type = "event:subscribe" AND NOT type = "nknOnePiece") as not_read',
+        '(SELECT COUNT(id) from ${MessageSchema.tableName} WHERE target_id = m.target_id AND is_outbound = 0 AND is_read = 0 '
+            'AND NOT type = "event:subscribe" '
+            'AND NOT type = "nknOnePiece"'
+            'AND NOT type = "event:contactOptions") as not_read',
         'MAX(send_time)'
       ],
       where:
@@ -152,11 +130,11 @@ class MessageListModel {
       whereArgs: [
         ContentType.text,
         ContentType.textExtension,
+        ContentType.media,
         ContentType.nknImage,
+        ContentType.nknAudio,
         ContentType.channelInvitation,
         ContentType.eventSubscribe,
-        ContentType.media,
-        ContentType.nknAudio
       ],
       groupBy: 'm.target_id',
       orderBy: 'm.send_time desc',

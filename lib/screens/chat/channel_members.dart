@@ -470,7 +470,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
 
   _inviteMessage(String address) async{
     // Anyone can invite anyone.
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
         from: NKNClientCaller.currentChatId,
         content: widget.topic.topic,
         to: address,

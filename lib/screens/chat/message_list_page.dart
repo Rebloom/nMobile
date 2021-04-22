@@ -313,17 +313,17 @@ class MessageListPageState extends State<MessageListPage>
                     }
                   }
                 }
-                else if (messageState is MarkMessageListAsReadState){
-                  MessageListModel updateModel = messageState.model;
-                  for (int i = 0; i < _messagesList.length; i++){
-                    MessageListModel model = _messagesList[i];
-                    if (model.targetId == updateModel.targetId){
-                      _messagesList.removeAt(i);
-                      _messagesList.insert(i, updateModel);
-                      break;
-                    }
-                  }
-                }
+                // else if (messageState is MarkMessageListAsReadState){
+                //   MessageListModel updateModel = messageState.model;
+                //   for (int i = 0; i < _messagesList.length; i++){
+                //     MessageListModel model = _messagesList[i];
+                //     if (model.targetId == updateModel.targetId){
+                //       _messagesList.removeAt(i);
+                //       _messagesList.insert(i, updateModel);
+                //       break;
+                //     }
+                //   }
+                // }
                 if (_messagesList.length > 0){
                   return _messageListWidget();
                 }
@@ -916,9 +916,8 @@ class MessageListPageState extends State<MessageListPage>
         arguments: argument).then((value) {
       NLog.w('MarkMessageListAsReadEvent called____'+targetId);
       if (updateModel != null){
-        _messageBloc.add(MarkMessageListAsReadEvent(updateModel));
+        _messageBloc.add(UpdateMessageListEvent(updateModel.targetId));
       }
-      // _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
       if (value == true) {
         NLog.w('_routeToGroupChatPage called____');
         _startRefreshMessage();

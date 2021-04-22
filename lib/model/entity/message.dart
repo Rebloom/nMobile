@@ -53,8 +53,8 @@ class ContentType {
 }
 
 class MessageSchema extends Equatable {
-  final String from;
-  final String to;
+  String from;
+  String to;
   dynamic data;
   dynamic content;
   String contentType;
@@ -74,11 +74,13 @@ class MessageSchema extends Equatable {
   bool isOutbound = false;
   bool isSendError = false;
 
-  int burnAfterSeconds;
-
-  String deviceToken;
   int contactOptionsType;
-
+  /// for burnAfterReading
+  int burnAfterSeconds;
+  int showBurnAfterSeconds;
+  /// for bell notification
+  String deviceToken;
+  /// for audio chat
   double audioFileDuration;
 
   String parentType;
@@ -106,9 +108,6 @@ class MessageSchema extends Equatable {
             content = msg['content'];
             break;
             /// see default done.
-          // case ContentType.eventContactOptions:
-          //   content = data;
-          //   break;
           case ContentType.nknImage:
           case ContentType.media:
           case ContentType.nknAudio:
@@ -150,23 +149,25 @@ class MessageSchema extends Equatable {
     return true;
   }
 
-  MessageSchema.fromSendData({
+  MessageSchema.formSendMessage({
     this.from,
     this.to,
+    this.msgId,
+    this.topic,
+    this.content,
+    this.contentType,
 
+    this.burnAfterSeconds,
+    /// for notification Message
+    this.deviceToken,
+    /// for audio chat Message
+    this.audioFileDuration,
     /// for nknOnePiece
+    this.parentType,
     this.parity,
     this.total,
     this.index,
     this.bytesLength,
-    this.msgId,
-    this.parentType,
-    this.topic,
-    this.content,
-    this.contentType,
-    this.deviceToken,
-    this.audioFileDuration,
-    Duration deleteAfterSeconds,
   }) {
     timestamp = DateTime.now();
 
@@ -179,8 +180,8 @@ class MessageSchema extends Equatable {
     if (audioFileDuration != null) {
       options['audioDuration'] = audioFileDuration.toString();
     }
-    if (deleteAfterSeconds != null) {
-      options['deleteAfterSeconds'] = deleteAfterSeconds.inSeconds;
+    if (burnAfterSeconds != null) {
+      options['deleteAfterSeconds'] = burnAfterSeconds;
     }
     if (options.keys.length == 0) options = null;
 
@@ -198,7 +199,7 @@ class MessageSchema extends Equatable {
     this.contentType,
     this.deviceToken,
     this.audioFileDuration,
-    Duration deleteAfterSeconds,
+    this.burnAfterSeconds,
   }) {
     timestamp = DateTime.now();
 
@@ -208,8 +209,8 @@ class MessageSchema extends Equatable {
     if (audioFileDuration != null) {
       options['audioDuration'] = audioFileDuration.toString();
     }
-    if (deleteAfterSeconds != null) {
-      options['deleteAfterSeconds'] = deleteAfterSeconds.inSeconds;
+    if (burnAfterSeconds != null) {
+      options['deleteAfterSeconds'] = burnAfterSeconds;
     }
     if (options.keys.length == 0) options = null;
 
@@ -609,7 +610,14 @@ class MessageSchema extends Equatable {
     message.deleteTime = e['delete_time'] != null
         ? DateTime.fromMillisecondsSinceEpoch(e['delete_time'])
         : null;
-
+    if (message.contentType == ContentType.textExtension ||
+        message.contentType == ContentType.nknImage ||
+        message.contentType == ContentType.media ||
+        message.contentType == ContentType.nknAudio){
+      if (message.options != null){
+        message.burnAfterSeconds = int.parse(message.options['deleteAfterSeconds'].toString());
+      }
+    }
     if (message.contentType == ContentType.nknImage ||
         message.contentType == ContentType.media) {
       File mediaFile =
@@ -671,9 +679,9 @@ class MessageSchema extends Equatable {
           contentType == ContentType.nknAudio ||
           contentType == ContentType.media ||
           contentType == ContentType.nknImage) {
-        if (options != null && options['deleteAfterSeconds'] != null) {
+        if (burnAfterSeconds != null) {
           deleteTime = DateTime.now()
-              .add(Duration(seconds: options['deleteAfterSeconds']));
+              .add(Duration(seconds: burnAfterSeconds));
         }
       }
       int n = await cdb.insert(MessageSchema.tableName, toEntity(pubKey));
@@ -1053,13 +1061,5 @@ class MessageSchema extends Equatable {
       whereArgs: [msgId],
     );
     return count;
-  }
-
-  int get deleteAfterSeconds {
-    if (options != null && options.containsKey('deleteAfterSeconds')) {
-      return options['deleteAfterSeconds'];
-    } else {
-      return null;
-    }
   }
 }

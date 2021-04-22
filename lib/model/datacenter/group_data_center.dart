@@ -965,7 +965,7 @@ class GroupDataCenter{
         await GroupDataCenter.pullSubscribersPublicChannel(topicName);
       }
 
-      var sendMsg = MessageSchema.fromSendData(
+      var sendMsg = MessageSchema.formSendMessage(
         from: NKNClientCaller.currentChatId,
         topic: topicName,
         contentType: ContentType.eventSubscribe,
@@ -980,7 +980,7 @@ class GroupDataCenter{
       if (e.toString().contains('duplicate subscription exist in block')) {
         Topic topicInfo = await GroupChatHelper.fetchTopicInfoByName(topicName);
         if (topicInfo != null) {
-          var sendMsg = MessageSchema.fromSendData(
+          var sendMsg = MessageSchema.formSendMessage(
             from: NKNClientCaller.currentChatId,
             topic: topicName,
             contentType: ContentType.eventSubscribe,

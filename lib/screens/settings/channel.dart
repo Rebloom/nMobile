@@ -437,7 +437,7 @@ class _ChannelSettingsScreenState extends State<ChannelSettingsScreen> {
 
   acceptPrivateAction(address) async {
     final topic = widget.arguments;
-    var sendMsg = MessageSchema.fromSendData(
+    var sendMsg = MessageSchema.formSendMessage(
         from: NKNClientCaller.currentChatId,
         content: topic.topic,
         to: address,
@@ -449,12 +449,6 @@ class _ChannelSettingsScreenState extends State<ChannelSettingsScreen> {
         topic.isOwner(NKNClientCaller.currentChatId) &&
         address != NKNClientCaller.currentChatId) {
       await GroupDataCenter.addPrivatePermissionList(topic.topic, address);
-      // await GroupChatHelper.moveSubscriberToWhiteList(
-      //     topic: topic,
-      //     chatId: address,
-      //     callback: () {
-      //       // refreshMembers();
-      //     });
     }
   }
 }
