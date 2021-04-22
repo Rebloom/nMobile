@@ -458,6 +458,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         toValue = parentMessage.to;
       }
       Duration duration = Duration(milliseconds: index * 10);
+
       Timer(duration, () async {
         var nknOnePieceMessage = MessageSchema.formSendMessage(
           msgId: parentMessage.msgId,
@@ -517,8 +518,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         await NKNClientCaller.intoPieces(base64Content, total, parity);
     NLog.w('_sendOnePieceMessage__Length__' + dataList.length.toString());
     _sendOnePiece(dataList, message);
-
-    return;
   }
 
   _sendGroupMessage(MessageSchema message) async {
@@ -563,10 +562,21 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       }
       else if (message.contentType == ContentType.nknOnePiece){
         List<String> targets = await GroupDataCenter.fetchGroupMembersTargets(message.topic);
+
+        List<String> onePieceTargets = new List<String>();
+        for (String targetId in targets){
+          String key = LocalStorage.NKN_ONE_PIECE_READY_JUDGE + targetId;
+          String onePieceReady = await LocalStorage().get(key);
+          if (onePieceReady != null && onePieceReady.length > 0) {
+            onePieceTargets.add(targetId);
+            NLog.w('onePieceReady Target is_______'+targetId.length.toString());
+          }
+        }
+
         String onePieceEncodeData = message.toNknPieceMessageData();
-        if (targets != null && targets.length > 0) {
+        if (onePieceTargets.length > 0) {
           Uint8List pid = await NKNClientCaller.sendText(
-              targets, onePieceEncodeData, message.msgId);
+              onePieceTargets, onePieceEncodeData, message.msgId);
           message.setMessageStatus(MessageStatus.MessageSendSuccess);
           MessageDataCenter.updateMessagePid(pid, message.msgId);
         } else {
@@ -576,9 +586,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         }
       }
       else{
-        NLog.w('groupUseOnePiece___'+message.contentType.toString());
         _sendOnePieceMessage(message);
-        /// Warning todo remove this When most user's version is above 1.1.0
         _sendGroupMessageWithJsonEncode(message, encodeSendJsonData);
       }
     }
