@@ -258,15 +258,8 @@ class MessageListPageState extends State<MessageListPage>
         return BlocBuilder<ChatBloc, ChatState>(
           builder: (context, chatState) {
             if (chatState is MessageUpdateState) {
-              if (chatState.message != null){
-                NLog.w('chatState message from is_____'+chatState.message.messageEntity.from.toString());
-              }
-              else{
-                NLog.w('chatState.message is_____null');
-              }
               if (chatState.target == null){
                 _startRefreshMessage();
-
                 NLog.w('chatState.target is_____null');
               }
               else{
@@ -313,17 +306,6 @@ class MessageListPageState extends State<MessageListPage>
                     }
                   }
                 }
-                // else if (messageState is MarkMessageListAsReadState){
-                //   MessageListModel updateModel = messageState.model;
-                //   for (int i = 0; i < _messagesList.length; i++){
-                //     MessageListModel model = _messagesList[i];
-                //     if (model.targetId == updateModel.targetId){
-                //       _messagesList.removeAt(i);
-                //       _messagesList.insert(i, updateModel);
-                //       break;
-                //     }
-                //   }
-                // }
                 if (_messagesList.length > 0){
                   return _messageListWidget();
                 }
@@ -732,7 +714,8 @@ class MessageListPageState extends State<MessageListPage>
           ),
         ],
       );
-    } else if (item.contentType == ContentType.nknImage ||
+    }
+    else if (item.contentType == ContentType.nknImage ||
         item.contentType == ContentType.media) {
       contentWidget = Padding(
         padding: const EdgeInsets.only(top: 0),
@@ -749,21 +732,41 @@ class MessageListPageState extends State<MessageListPage>
           ],
         ),
       );
-    } else if (item.contentType == ContentType.channelInvitation) {
+    }
+    else if (item.contentType == ContentType.nknAudio) {
+      contentWidget = Padding(
+        padding: const EdgeInsets.only(top: 0),
+        child: Row(
+          children: <Widget>[
+            Label(
+              contact.getShowName + ': ',
+              maxLines: 1,
+              type: LabelType.bodySmall,
+              overflow: TextOverflow.ellipsis,
+            ),
+            loadAssetIconsImage('microphone',
+                width: 16.w, color: DefaultTheme.fontColor2),
+          ],
+        ),
+      );
+    }
+    else if (item.contentType == ContentType.channelInvitation) {
       contentWidget = Label(
         contact.getShowName + ': ' + NL10ns.of(context).channel_invitation,
         type: bottomType,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
-    } else if (item.contentType == ContentType.eventSubscribe) {
+    }
+    else if (item.contentType == ContentType.eventSubscribe) {
       contentWidget = Label(
         contact.getShowName + NL10ns.of(context).joined_channel,
         maxLines: 1,
         type: bottomType,
         overflow: TextOverflow.ellipsis,
       );
-    } else {
+    }
+    else {
       contentWidget = Label(
         contact.getShowName + ': ' + item.content,
         maxLines: 1,

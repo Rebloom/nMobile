@@ -139,6 +139,8 @@ class NKNClientCaller {
       'maxHoldingSeconds': -1,
       'msgId': messageId,
     };
+
+    NLog.w('!!!!!sendText \n:' + sendData.toString());
     try {
       _methodChannel.invokeMethod('sendText', sendData);
     } catch (e) {
@@ -483,7 +485,6 @@ class NKNClientCaller {
           NLog.w('disConnect Native to dart___' + res.toString());
           break;
         case 'onMessage':
-          NLog.w('onMessage Data' + res.toString());
           Map data = res['data'];
           if (clientBloc != null) {
             NLog.w('ClientBloc not null__\n' + NKNClientCaller.currentChatId);

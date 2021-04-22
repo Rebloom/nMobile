@@ -194,13 +194,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
           message.contentType == ContentType.nknImage ||
           message.contentType == ContentType.channelInvitation) {
 
-        if (message.burnAfterSeconds > 0) {
-          message.deleteTime = DateTime.now()
-              .add(Duration(seconds: message.burnAfterSeconds));
-          await message.updateDeleteTime();
+        if (message.burnAfterSeconds != null){
+          if (message.burnAfterSeconds > 0) {
+            message.deleteTime = DateTime.now()
+                .add(Duration(seconds: message.burnAfterSeconds));
+            await message.updateDeleteTime();
+          }
         }
         _checkIfSendNotification(message.to, '');
-
         if (message.contentType == ContentType.text ||
             message.contentType == ContentType.textExtension ||
             message.contentType == ContentType.channelInvitation) {
@@ -210,7 +211,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
           bool useOnePiece = false;
           String key = LocalStorage.NKN_ONE_PIECE_READY_JUDGE + message.to;
           String onePieceReady = await LocalStorage().get(key);
-          NLog.w('onePieceReady is____' + onePieceReady.toString());
+
           if (onePieceReady != null && onePieceReady.length > 0) {
             useOnePiece = true;
             NLog.w('useOnePiece Send!!!!!!');
@@ -223,36 +224,35 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
             return;
           } else {
             if (message.contentType == ContentType.media ||
-                message.contentType == ContentType.nknImage){
-              /// Warning todo remove this When most user's version is above 1.1.0
-              String extraSendForAndroidSuit = message.toSuitVersionImageData(ContentType.media);
-              try {
-                Uint8List pid = await NKNClientCaller.sendText(
-                    [message.to], extraSendForAndroidSuit, message.msgId);
-                if(pid != null){
-                  message.setMessageStatus(MessageStatus.MessageSendSuccess);
-                  MessageDataCenter.updateMessagePid(pid, message.msgId);
+                message.contentType == ContentType.nknImage ||
+                message.contentType == ContentType.nknAudio ){
+              NLog.w('SendDestination is+____'+message.to.length.toString());
+              /// Consider it is D-ChatPC
+              if (message.to.length > 64){
+                String dataForDChatPC = message.toDChatMediaData(message.contentType);
+                try {
+                  Uint8List pid = await NKNClientCaller.sendText(
+                      [message.to], dataForDChatPC, message.msgId);
+                  if(pid != null){
+                    message.setMessageStatus(MessageStatus.MessageSendSuccess);
+                    MessageDataCenter.updateMessagePid(pid, message.msgId);
+                  }
+                  NLog.w('dataForDChatPC___'+pid.toString());
+                } catch (e) {
+                  NLog.w('Wrong___' + e.toString());
+                  message.setMessageStatus(MessageStatus.MessageSendFail);
                 }
-                NLog.w('extraSendForAndroidSuit___'+pid.toString());
-              } catch (e) {
-                NLog.w('Wrong___' + e.toString());
-                message.setMessageStatus(MessageStatus.MessageSendFail);
+                return;
               }
-              /// Warning todo remove this When most user's version is above 1.1.0
-              String extraSendForiOSSuit = message.toSuitVersionImageData('image');
-              try {
-                Uint8List pid = await NKNClientCaller.sendText(
-                    [message.to], extraSendForiOSSuit, message.msgId);
-                if(pid != null){
-                  message.setMessageStatus(MessageStatus.MessageSendSuccess);
-                  MessageDataCenter.updateMessagePid(pid, message.msgId);
+              else{
+                if (message.contentType == ContentType.media ||
+                    message.contentType == ContentType.nknImage){
+                  contentData = message.toImageData();
                 }
-                NLog.w('extraSendForiOSSuit___'+pid.toString());
-              } catch (e) {
-                NLog.w('Wrong___' + e.toString());
-                message.setMessageStatus(MessageStatus.MessageSendFail);
+                else if (message.contentType == ContentType.nknAudio){
+                  contentData = message.toAudioData();
+                }
               }
-              contentData = message.toImageData();
             }
           }
         }
@@ -547,7 +547,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       encodeSendJsonData = message.toTextData();
     } else if (message.contentType == ContentType.nknImage ||
         message.contentType == ContentType.media) {
-      encodeSendJsonData = message.toSuitVersionImageData(ContentType.media);
+      encodeSendJsonData = message.toImageData();
     } else if (message.contentType == ContentType.nknAudio) {
       encodeSendJsonData = message.toAudioData();
     } else if (message.contentType == ContentType.eventSubscribe) {
@@ -610,8 +610,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         message.setMessageStatus(MessageStatus.MessageSendFail);
         NLog.w('_sendGroupMessageWithJsonEncode E:'+e.toString());
       }
-      NLog.w('_sendGroupMessageWithJsonEncode WithContent:'+jsonDecode(encodeJson).toString());
-      NLog.w('_sendGroupMessageWithJsonEncode With pid:'+pid.toString());
       if (pid != null) {
         MessageDataCenter.updateMessagePid(pid, message.msgId);
       }

@@ -344,19 +344,16 @@ class MessageSchema extends Equatable {
     return jsonEncode(data);
   }
 
-  String toSuitVersionImageData(String contentType) {
+  String toDChatMediaData(String contentType) {
     File file = this.content as File;
-    var mimeType = mime(file.path);
 
     String content;
-    if (mimeType.indexOf('image') > -1) {
-      content =
-      '![image](data:${mime(file.path)};base64,${base64Encode(file.readAsBytesSync())})';
-    }
+    content =
+    '![media](data:${mime(file.path)};base64,${base64Encode(file.readAsBytesSync())})';
 
     Map data = {
       'id': msgId,
-      'contentType': contentType,
+      'contentType': ContentType.media,
       'content': content,
       'timestamp': timestamp?.millisecondsSinceEpoch ??
           DateTime.now().millisecondsSinceEpoch,
@@ -367,23 +364,19 @@ class MessageSchema extends Equatable {
     if (topic != null) {
       data['topic'] = topic;
     }
-    NLog.w('toSuitVersionImageData is___'+data.toString());
+    NLog.w('toDChatMediaData is___'+data.toString());
     return jsonEncode(data);
   }
 
   String toImageData() {
     File file = this.content as File;
-    var mimeType = mime(file.path);
 
     String content;
-    if (mimeType.indexOf('image') > -1) {
-      content =
-          '![image](data:${mime(file.path)};base64,${base64Encode(file.readAsBytesSync())})';
-    }
+    content = '![image](data:${mime(file.path)};base64,${base64Encode(file.readAsBytesSync())})';
 
     Map data = {
       'id': msgId,
-      'contentType': ContentType.nknImage,
+      'contentType': ContentType.media,
       'content': content,
       'timestamp': timestamp?.millisecondsSinceEpoch ??
           DateTime.now().millisecondsSinceEpoch,
@@ -394,7 +387,7 @@ class MessageSchema extends Equatable {
     if (topic != null) {
       data['topic'] = topic;
     }
-    NLog.w('toImageData is___'+data.toString());
+    NLog.w('toNMobileMediaData is___'+data.toString());
     return jsonEncode(data);
   }
 
@@ -910,25 +903,6 @@ class MessageSchema extends Equatable {
       NLog.w('updateMessageStatus success!__' + status.toString());
     }
   }
-
-  // Future<int> updateDeleteTime() async{
-  //   if (deleteTime == null &&
-  //       burnAfterSeconds != null) {
-  //     Database cdb = await NKNDataManager().currentDatabase();
-  //     deleteTime = DateTime.now().add(
-  //         Duration(seconds: burnAfterSeconds));
-  //     var count = cdb.update(
-  //       MessageSchema.tableName,
-  //       {
-  //         'delete_time': deleteTime.millisecondsSinceEpoch,
-  //       },
-  //       where: 'msg_id = ?',
-  //       whereArgs: [msgId],
-  //     );
-  //     return count;
-  //   }
-  //   return 0;
-  // }
 
   Future<int> markMessageRead() async {
     Database cdb = await NKNDataManager().currentDatabase();
