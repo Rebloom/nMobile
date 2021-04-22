@@ -473,6 +473,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
                 config.maxHoldingSeconds = maxHoldingSeconds < 0 ? Int32.max : maxHoldingSeconds
                 config.messageID = NknRandomBytes(Int(NknMessageIDSize), nil)
                 config.noReply = true
+                config.txPool = true
                 
                 try client.publishText(topicHash, data: data, config: config)
                 var resp: [String: Any] = [String: Any]()

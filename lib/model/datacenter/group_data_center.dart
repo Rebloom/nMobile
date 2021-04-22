@@ -904,7 +904,6 @@ class GroupDataCenter{
     }
   }
 
-
   static Future<ContactSchema> checkContactIfExists(
       String clientAddress) async {
     var contact = await ContactSchema.fetchContactByAddress(clientAddress);

@@ -472,6 +472,7 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
         config.maxHoldingSeconds = if (maxHoldingSeconds < 0) Int.MAX_VALUE else maxHoldingSeconds
         config.messageID = Nkn.randomBytes(Nkn.MessageIDSize)
         config.noReply = true
+        config.txPool = true
         msgSendHandler.post {
             try {
                 multiClient!!.publishText(topicHash, data, config)
