@@ -19,7 +19,6 @@ import 'package:nmobile/helpers/utils.dart';
 import 'package:nmobile/model/datacenter/contact_data_center.dart';
 import 'package:nmobile/model/datacenter/group_data_center.dart';
 import 'package:nmobile/model/datacenter/message_data_center.dart';
-import 'package:nmobile/model/db/nkn_data_manager.dart';
 import 'package:nmobile/model/entity/subscriber_repo.dart';
 import 'package:nmobile/model/entity/topic_repo.dart';
 import 'package:nmobile/model/message_model.dart';
@@ -43,12 +42,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   bool googleServiceOn = false;
   bool googleServiceOnInit = false;
 
-  List<MessageSchema> entityMessageList = new List();
-  List<MessageSchema> actionMessageList = new List();
   Timer watchDog;
-  int delayResendSeconds = 15;
+  int delayReceivingSeconds = 1;
+  List<MessageSchema> batchReceivedList = new List();
 
-  Map judgeToResendMessage = new Map();
+  // int delayResendSeconds = 15;
+  // Map judgeToResendMessage = new Map();
 
   Uint8List messageIn, messageOut;
 
@@ -89,79 +88,55 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     }
   }
 
-  _resendMessage(MessageSchema message) async {
-    var cdb = await NKNDataManager().currentDatabase();
-
-    var res = await cdb.query(
-      MessageSchema.tableName,
-      columns: ['*'],
-      orderBy: 'send_time desc',
-      where: '(type = ? or type = ?) AND sender = ? AND receiver = ? '
-          'AND is_success = 0',
-      whereArgs: [
-        ContentType.text,
-        ContentType.textExtension,
-        message.to,
-        message.from
-      ],
-      limit: 20,
-      offset: 0,
-    );
-
-    List<MessageSchema> messages = <MessageSchema>[];
-    for (var i = 0; i < res.length; i++) {
-      var messageItem = MessageSchema.parseEntity(res[i]);
-      messages.add(messageItem);
-    }
-    if (res.isNotEmpty) {
-      NLog.w('ResendMessage___' + res.length.toString());
-      for (MessageSchema message in messages) {
-        if (message.isSuccess == false && message.isSendMessage()) {
-          this.add(SendMessageEvent(message));
-        }
-      }
-    }
-  }
-
-  _judgeResend() async {
-    /// Query UnreadMessage and resend it to the very ClientAddress
-    if (delayResendSeconds == 0) {
-      for (String key in judgeToResendMessage.keys) {
-        MessageSchema message = judgeToResendMessage[key];
-        _resendMessage(message);
-      }
-
-      _stopWatchDog();
-    }
-    delayResendSeconds--;
+  _insertMessage(MessageSchema message) async {
+    message.sendReceiptMessage();
+    _startWatchDog(message);
   }
 
   _startWatchDog(MessageSchema msg) {
     if (watchDog == null || watchDog.isActive == false) {
-      /// because it is Receipt message, so keep msg.from
-      if (!judgeToResendMessage.containsKey(msg.from)) {
-        judgeToResendMessage[msg.from] = msg;
-      }
-
-      delayResendSeconds = 15;
+      batchReceivedList = new List();
+      delayReceivingSeconds = 1;
       watchDog = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
-        _judgeResend();
+        _batchInsertReceivingMessage();
+        delayReceivingSeconds--;
       });
+    }
+    bool canAdd = true;
+    if (batchReceivedList != null && batchReceivedList.length > 0){
+      for (MessageSchema bMessage in batchReceivedList){
+        if (bMessage.msgId == msg.msgId){
+          canAdd = false;
+        }
+      }
+    }
+    if (canAdd){
+      batchReceivedList.add(msg);
+    }
+    else{
+      NLog.w('batchReceivedList duplicate add____'+msg.content.toString());
+    }
+    NLog.w('_startWatchDog batchReceivedList is____'+batchReceivedList.length.toString());
+  }
+
+  _batchInsertReceivingMessage() async{
+    NLog.w('______!______'+delayReceivingSeconds.toString());
+    if((delayReceivingSeconds == 0 && batchReceivedList.length > 0) ||
+        batchReceivedList.length > 500){
+      NLog.w('_batchInsertReceivingMessage count is____'+batchReceivedList.length.toString());
+      await MessageDataCenter.batchInsertMessages(batchReceivedList);
+      batchReceivedList.clear();
+      _stopWatchDog();
+
+      this.add(RefreshMessageListEvent());
     }
   }
 
   _stopWatchDog() {
-    delayResendSeconds = 15;
+    delayReceivingSeconds = 1;
     if (watchDog.isActive) {
       watchDog.cancel();
       watchDog = null;
-    }
-  }
-
-  _watchSendMessage(MessageSchema message) async {
-    bool pidExists = await MessageDataCenter.judgeMessagePid(message.msgId);
-    if (pidExists == false) {
-      message.setMessageStatus(MessageStatus.MessageSendFail);
     }
   }
 
@@ -409,6 +384,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         contentType: onePieceMessage.parentType,
         content: fullFile,
         audioFileDuration: onePieceMessage.audioFileDuration,
+        timestamp: onePieceMessage.timestamp,
       );
       if (onePieceMessage.options != null){
         nReceived.options = onePieceMessage.options;
@@ -609,31 +585,58 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         }
       }
     } else {
-      Uint8List pid;
-      try {
-        pid = await NKNClientCaller.publishText(
-            genTopicHash(message.topic), encodeJson);
-        message.setMessageStatus(MessageStatus.MessageSendSuccess);
-      } catch (e) {
-        message.setMessageStatus(MessageStatus.MessageSendFail);
-        NLog.w('_sendGroupMessageWithJsonEncode E:'+e.toString());
+      /// do not use check send
+      if (message.contentType == ContentType.text ||
+          message.contentType == ContentType.eventSubscribe ||
+          message.contentType == ContentType.eventUnsubscribe){
+        Uint8List pid;
+        try {
+          pid = await NKNClientCaller.publishText(
+              genTopicHash(message.topic), encodeJson);
+          message.setMessageStatus(MessageStatus.MessageSendSuccess);
+        } catch (e) {
+          message.setMessageStatus(MessageStatus.MessageSendFail);
+          NLog.w('_sendGroupMessageWithJsonEncode E:'+e.toString());
+        }
+        if (pid != null) {
+          MessageDataCenter.updateMessagePid(pid, message.msgId);
+        }
       }
-      if (pid != null) {
-        MessageDataCenter.updateMessagePid(pid, message.msgId);
+      else{
+        Uint8List pid;
+        try {
+          List<String> targets = await GroupDataCenter.fetchGroupMembersTargets(message.topic);
+          List<String> oldTargets = new List<String>();
+          for (String targetId in targets){
+            String key = LocalStorage.NKN_ONE_PIECE_READY_JUDGE + targetId;
+            String onePieceReady = await LocalStorage().get(key);
+            if (onePieceReady == null) {
+              oldTargets.add(targetId);
+            }
+          }
+          if (oldTargets != null && oldTargets.length > 0) {
+            Uint8List pid = await NKNClientCaller.sendText(
+                oldTargets, encodeJson, message.msgId);
+            message.setMessageStatus(MessageStatus.MessageSendSuccess);
+            MessageDataCenter.updateMessagePid(pid, message.msgId);
+            NLog.w('SendTotal is______'+(oldTargets.length*encodeJson.length).toString());
+          } else {
+            if (message.topic != null) {
+              NLog.w('Wrong !!!Topic got no Member' + message.topic);
+            }
+            else{
+              NLog.w('Wrong !!!Message.topic is null');
+            }
+          }
+
+        } catch (e) {
+          message.setMessageStatus(MessageStatus.MessageSendFail);
+          NLog.w('_sendGroupMessageWithJsonEncode E:'+e.toString());
+        }
+        if (pid != null) {
+          MessageDataCenter.updateMessagePid(pid, message.msgId);
+        }
       }
-    }
-  }
-
-  _insertMessage(MessageSchema message) async {
-    bool insertReceiveSuccess = await message.insertReceivedMessage();
-    if (insertReceiveSuccess) {
-      message.setMessageStatus(MessageStatus.MessageReceived);
-      message.sendReceiptMessage();
-
-      var unReadCount = await MessageSchema.unReadMessages();
-      FlutterAppBadger.updateBadgeCount(unReadCount);
-    } else {
-      NLog.w('Insert Message failed' + message.contentType.toString());
     }
   }
 
@@ -641,32 +644,35 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       ReceiveMessageEvent event) async* {
     var message = event.message;
 
+    if (message.content.toString().contains('(_test_)')){
+      NLog.w('Test Content is____'+message.content.toString());
+    }
     /// judge if ReceivedMessage duplicated
-    bool messageExist = await message.isReceivedMessageExist();
-    if (messageExist == true) {
-      /// should retry here!!!
-      if (message.isSuccess == false &&
-          message.contentType != ContentType.nknOnePiece) {
-        message.sendReceiptMessage();
-      }
-      NLog.w('ReceiveMessage from AnotherNode__');
-      return;
-    }
-    else{
-      /// judge ReceiveMessage if D-Chat PC groupMessage Receipt
-      MessageSchema dChatPcReceipt = await MessageSchema.findMessageWithMessageId(event.message.msgId);
-      if (dChatPcReceipt != null && dChatPcReceipt.contentType != ContentType.nknOnePiece){
-        dChatPcReceipt = await dChatPcReceipt.receiptMessage();
-
-        dChatPcReceipt.content = message.msgId;
-        dChatPcReceipt.contentType = ContentType.receipt;
-        dChatPcReceipt.topic = null;
-
-        MessageModel model = await MessageModel.modelFromMessageFrom(dChatPcReceipt);
-        yield MessageUpdateState(target: dChatPcReceipt.from, message: model);
-        return;
-      }
-    }
+    // bool messageExist = await message.isReceivedMessageExist();
+    // if (messageExist == true) {
+    //   /// should retry here!!!
+    //   if (message.isSuccess == false &&
+    //       message.contentType != ContentType.nknOnePiece) {
+    //     message.sendReceiptMessage();
+    //   }
+    //   NLog.w('ReceiveMessage from AnotherNode__');
+    //   return;
+    // }
+    // else{
+    //   /// judge ReceiveMessage if D-Chat PC groupMessage Receipt
+    //   MessageSchema dChatPcReceipt = await MessageSchema.findMessageWithMessageId(event.message.msgId);
+    //   if (dChatPcReceipt != null && dChatPcReceipt.contentType != ContentType.nknOnePiece){
+    //     dChatPcReceipt = await dChatPcReceipt.receiptMessage();
+    //
+    //     dChatPcReceipt.content = message.msgId;
+    //     dChatPcReceipt.contentType = ContentType.receipt;
+    //     dChatPcReceipt.topic = null;
+    //
+    //     MessageModel model = await MessageModel.modelFromMessageFrom(dChatPcReceipt);
+    //     yield MessageUpdateState(target: dChatPcReceipt.from, message: model);
+    //     return;
+    //   }
+    // }
 
     if (message.contentType == ContentType.receipt) {
       MessageSchema oMessage = await message.receiptMessage();
@@ -680,11 +686,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         yield MessageUpdateState(target: oMessage.from, message: model);
         return;
       }
-    }
-
-    bool existOnePiece = await message.isOnePieceExist();
-    if (existOnePiece == true) {
-      return;
     }
 
     ContactSchema contact = await _checkContactIfExists(message.from);
@@ -715,8 +716,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         MessageModel model = await MessageModel.modelFromMessageFrom(oMessage);
         yield MessageUpdateState(target: oMessage.from, message: model);
         return;
-      } else {
-        NLog.w('_insertMessage__'+message.from.toString()+'!!!!!!');
+      }
+      else {
         if (message.contentType == ContentType.eventSubscribe ||
             message.contentType == ContentType.eventUnsubscribe) {
           if (message.from == NKNClientCaller.currentChatId) {} else {
@@ -747,7 +748,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
             }
           }
         }
-        message.setMessageStatus(MessageStatus.MessageReceived);
         _insertMessage(message);
       }
     }
@@ -803,7 +803,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
           }
         }
       }
-    } else {
+    }
+    else {
       /// Single Message
       var contact = await _checkContactIfExists(message.from);
       if (message.contentType == ContentType.text ||

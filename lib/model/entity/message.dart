@@ -206,9 +206,8 @@ class MessageSchema extends Equatable {
     this.deviceToken,
     this.audioFileDuration,
     this.burnAfterSeconds,
+    this.timestamp,
   }) {
-    timestamp = DateTime.now();
-
     if (options == null) {
       options = {};
     }
@@ -614,7 +613,6 @@ class MessageSchema extends Equatable {
         if (message.options['deleteAfterSeconds'] != null){
           message.burnAfterSeconds = int.parse(message.options['deleteAfterSeconds'].toString());
         }
-        NLog.w('Message.options is____'+message.options.toString());
       }
     }
     if (message.contentType == ContentType.nknImage ||

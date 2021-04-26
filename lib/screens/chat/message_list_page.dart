@@ -268,7 +268,6 @@ class MessageListPageState extends State<MessageListPage>
             }
             return BlocBuilder<MessageBloc, MessageState>(
               builder: (context, messageState){
-                NLog.w('messageState state is______'+messageState.toString());
                 if (_messagesList == null){
                   _messagesList = new List();
                 }
@@ -278,6 +277,7 @@ class MessageListPageState extends State<MessageListPage>
                   }
                   else{
                     if (messageState.messageList != null){
+                      NLog.w('messageState.messageList is_____'+messageState.messageList.length.toString());
                       if (_messagesList.length < startIndex+messageState.messageList.length){
                         _messagesList += messageState.messageList;
                       }

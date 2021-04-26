@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:nmobile/blocs/nkn_client_caller.dart';
 import 'package:nmobile/helpers/utils.dart';
 import 'package:nmobile/model/db/nkn_data_manager.dart';
 import 'package:nmobile/model/entity/message.dart';
@@ -40,24 +42,45 @@ class MessageDataCenter {
     return null;
   }
 
-  Future<int> testMessage() async {
-    // b5dbb01b-0385-4545-806e-7515ee263a40
-
+  static Future<bool> batchInsertMessages(List<MessageSchema> mList) async{
     Database cdb = await NKNDataManager().currentDatabase();
+    Batch batchInsert = cdb.batch();
+    for (MessageSchema message in mList){
+      Map insertMessageInfo = message.toEntity(NKNClientCaller.currentChatId);
 
-    var res = await cdb.query(
-      MessageSchema.tableName,
-      where: 'msg_id = ? AND type = ?',
-      whereArgs: [
-        'b5dbb01b-0385-4545-806e-7515ee263a40',
-        ContentType.nknOnePiece
-      ],
-    );
+      String pid = insertMessageInfo['pid'];
+      String msg_id = insertMessageInfo['msg_id'];
+      String sender = insertMessageInfo['sender'];
+      String receiver = insertMessageInfo['receiver'];
+      String targetId = insertMessageInfo['target_id'];
+      String type = insertMessageInfo['type'];
+      String topic = insertMessageInfo['topic'];
+      String options = '';
+      String content = insertMessageInfo['content'].toString();
+      int is_read = insertMessageInfo['is_read'];
+      int is_success = insertMessageInfo['is_success'];
+      int is_outbound = insertMessageInfo['is_outbound'];
+      int is_send_error = insertMessageInfo['is_send_error'];
+      int receive_time = insertMessageInfo['receive_time'];
+      int send_time = insertMessageInfo['send_time'];
+      int delete_time = insertMessageInfo['delete_time'];
 
-    if (res.length > 0) {
-      return res.length;
+      String insertSQL = 'INSERT INTO Messages ("pid","msg_id","sender","receiver","target_id","type","topic","options","content",'
+          '"is_read","is_success","is_outbound","is_send_error","receive_time","send_time","send_time") '
+          'VALUES("$pid","$msg_id","$sender","$receiver","$targetId","$type","$topic","$options","$content", '
+          '$is_read,$is_success,$is_outbound,$is_send_error,$receive_time,$send_time,$delete_time) '
+          'WHERE NOT EXISTS(SELECT msg_id FROM Messages WHERE msg_id="$msg_id")';
+      batchInsert.insert(MessageSchema.tableName, insertMessageInfo);
     }
-    return 0;
+    try{
+      NLog.w('batchInsertMessages MessageList is______'+mList.length.toString());
+      await batchInsert.commit();
+    }
+    catch(e){
+      NLog.w('Wrong!!!!!batchInsertMessages E:'+e.toString());
+      return false;
+    }
+    return true;
   }
 
   static Future<bool> judgeMessagePid(String msgId) async {

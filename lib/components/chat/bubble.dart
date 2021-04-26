@@ -419,9 +419,9 @@ class _ChatBubbleState extends State<ChatBubble> {
               widget.resendMessage(messageSchema.msgId)
             },
             child: Icon(
-              FontAwesomeIcons.redo,
-              color: DefaultTheme.primaryColor,
-              size: 24,
+              FontAwesomeIcons.exclamationCircle,
+              color: Colors.redAccent,
+              size: 20,
             ),
           ),
         );
