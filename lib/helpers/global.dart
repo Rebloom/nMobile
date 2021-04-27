@@ -24,7 +24,7 @@ class Global {
   static String buildVersion;
   static Map<String, DateTime> loadTopicDataTime = {};
   static Map<String, num> loadLoadSubscribers = {};
-  static AppLifecycleState state;
+  static AppLifecycleState appState;
   static Map<String, DateTime> _loadProfileCache = {};
 
   static bool get isRelease => const bool.fromEnvironment("dart.vm.product");

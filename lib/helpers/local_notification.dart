@@ -66,7 +66,7 @@ class LocalNotification {
 
   static messageNotification(String title, String content,
       {int badgeNumber, MessageSchema message}) async {
-    if (message != null && Global.state == AppLifecycleState.resumed) {
+    if (message != null && Global.appState == AppLifecycleState.resumed) {
       if (message.topic != null) {
         if (Global.currentOtherChatId == message.topic) {
           return;

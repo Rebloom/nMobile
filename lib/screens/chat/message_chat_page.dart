@@ -7,6 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:nmobile/blocs/auth/auth_bloc.dart';
+import 'package:nmobile/blocs/auth/auth_state.dart';
 import 'package:nmobile/blocs/channel/channel_bloc.dart';
 import 'package:nmobile/blocs/channel/channel_event.dart';
 import 'package:nmobile/blocs/channel/channel_state.dart';
@@ -16,6 +18,7 @@ import 'package:nmobile/blocs/chat/chat_state.dart';
 import 'package:nmobile/blocs/contact/contact_bloc.dart';
 import 'package:nmobile/blocs/message/message_bloc.dart';
 import 'package:nmobile/blocs/message/message_event.dart';
+import 'package:nmobile/blocs/message/message_state.dart';
 import 'package:nmobile/blocs/nkn_client_caller.dart';
 import 'package:nmobile/components/CommonUI.dart';
 import 'package:nmobile/components/box/body.dart';
@@ -64,8 +67,8 @@ class MessageChatPage extends StatefulWidget {
 }
 
 class _MessageChatPageState extends State<MessageChatPage> {
+  AuthBloc _authBloc;
   ChatBloc _chatBloc;
-  ContactBloc _contactBloc;
   ChannelBloc _channelBloc;
   MessageBloc _messageBloc;
 
@@ -74,6 +77,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
   String targetId;
   StreamSubscription _chatSubscription;
+  StreamSubscription _authSubscription;
   ScrollController _scrollController = ScrollController();
   FocusNode _sendFocusNode = FocusNode();
   TextEditingController _sendController = TextEditingController();
@@ -233,7 +237,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
     }
     Global.currentOtherChatId = targetId;
 
-    _contactBloc = BlocProvider.of<ContactBloc>(context);
+    _authBloc = BlocProvider.of<AuthBloc>(context);
     _chatBloc = BlocProvider.of<ChatBloc>(context);
     _channelBloc = BlocProvider.of<ChannelBloc>(context);
     _messageBloc = BlocProvider.of<MessageBloc>(context);
@@ -253,6 +257,27 @@ class _MessageChatPageState extends State<MessageChatPage> {
           setState(() {
             _showBottomMenu = false;
           });
+        }
+      });
+
+      /// when background to foreground updateMessage.updateDeleteTime();
+      _authSubscription = _authBloc.listen((state){
+        NLog.w('UpdateMessageListState state is______'+state.toString());
+        if (state is AuthToFrontState){
+          for (MessageModel model in _messages){
+            MessageSchema message = model.messageEntity;
+            if (message.burnAfterSeconds != null) {
+              NLog.w('UpdateMessageListState Global.appState is______'+Global.appState.toString());
+              if (Global.appState == AppLifecycleState.resumed){
+                if (message.deleteTime == null){
+                  message.deleteTime = DateTime.now().add(
+                      Duration(seconds: message.burnAfterSeconds));
+                  message.updateDeleteTime();
+                }
+              }
+            }
+          }
+          setState(() {});
         }
       });
 
@@ -296,9 +321,12 @@ class _MessageChatPageState extends State<MessageChatPage> {
               updateMessage.setMessageStatus(MessageStatus.MessageReceivedRead);
             }
             if (updateMessage.burnAfterSeconds != null) {
-              updateMessage.deleteTime = DateTime.now().add(
-                  Duration(seconds: updateMessage.burnAfterSeconds));
-              updateMessage.updateDeleteTime();
+              if (Global.appState == AppLifecycleState.resumed){
+                updateMessage.deleteTime = DateTime.now().add(
+                    Duration(seconds: updateMessage.burnAfterSeconds));
+                updateMessage.updateDeleteTime();
+              }
+              NLog.w('burnAfterSeconds updateDeleteTime is______'+updateMessage.burnAfterSeconds.toString());
             }
             setState(() {
               _messages.insert(0, updateModel);
@@ -341,15 +369,19 @@ class _MessageChatPageState extends State<MessageChatPage> {
             if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
               Map<String,dynamic> eventContent = jsonDecode(updateMessage.content);
               if (eventContent['content'] != null && updateMessage.isSendMessage() == false) {
-                var contentJson = eventContent['content'];
-                var deleteAfterSeconds = contentJson['deleteAfterSeconds'].toString();
-                if (contentJson['deleteAfterSeconds'] == null){
-                  contactInfo.setBurnOptions(null);
+                int optionType = eventContent['optionType'];
+                if (optionType == 0){
+                  var contentJson = eventContent['content'];
+                  NLog.w('eventContent is_____'+eventContent.toString());
+                  var deleteAfterSeconds = contentJson['deleteAfterSeconds'].toString();
+                  if (contentJson['deleteAfterSeconds'] == null){
+                    contactInfo.setBurnOptions(null);
+                  }
+                  else{
+                    contactInfo.setBurnOptions(int.parse(deleteAfterSeconds.toString()));
+                  }
+                  setState(() {});
                 }
-                else{
-                  contactInfo.setBurnOptions(int.parse(deleteAfterSeconds.toString()));
-                }
-                setState(() {});
               }
             }
           }
@@ -402,7 +434,10 @@ class _MessageChatPageState extends State<MessageChatPage> {
         NKNClientCaller.currentChatId, targetId,
         content: _sendController.text);
     _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
+
     _chatSubscription?.cancel();
+    _authSubscription?.cancel();
+
     _scrollController?.dispose();
     _sendController?.dispose();
     _sendFocusNode?.dispose();

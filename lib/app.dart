@@ -60,18 +60,16 @@ class _AppScreenState extends State<AppScreen>
   @override
   didChangeAppLifecycleState(AppLifecycleState state) {
     /// When app enter background mode
+    Global.appState = state;
     if (state == AppLifecycleState.paused) {
       _authBloc.add(AuthToBackgroundEvent());
       TimerAuth.instance.onHomePagePaused(context);
       fromBackground = true;
-      // _clientBloc.add(NKNDisConnectClientEvent());
     }
-
     /// This occurs when shows system bottom menu,choose picture from album or biometric Auth,or take a picture...
     else if (state == AppLifecycleState.inactive) {
       /// do nothing
     }
-
     /// This calls when app awake from background
     else if (state == AppLifecycleState.resumed) {
       if (fromBackground) {
@@ -79,7 +77,6 @@ class _AppScreenState extends State<AppScreen>
         int result = TimerAuth.instance.onHomePageResumed(context);
         if (result == -1) {
           _authBloc.add(AuthToFrontEvent());
-          // _clientBloc.add(NKNRecreateClientEvent());
         } else {
           ensureAutoShowAuth();
         }
