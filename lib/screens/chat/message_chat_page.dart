@@ -322,7 +322,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
               }
             }
           }
-          else if (updateMessage.burnAfterSeconds != null) {
+          if (updateMessage.burnAfterSeconds != null) {
             /// not update other's setting
             if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
               ContactSchema chatContact = updateModel.contactEntity;
@@ -336,27 +336,20 @@ class _MessageChatPageState extends State<MessageChatPage> {
               }
             }
           }
-          else if (updateMessage.contentType == ContentType.eventContactOptions){
+          if (updateMessage.contentType == ContentType.eventContactOptions){
             /// not update other's setting
-            ContactSchema chatContact = updateModel.contactEntity;
             if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
               Map<String,dynamic> eventContent = jsonDecode(updateMessage.content);
               if (eventContent['content'] != null && updateMessage.isSendMessage() == false) {
-                Map<String,dynamic> contactContent = eventContent['content'];
-                var deleteAfterSeconds = contactContent['deleteAfterSeconds'].toString();
-
-                if (chatContact.options.updateBurnAfterTime == null ||
-                    updateMessage.timestamp.millisecondsSinceEpoch >
-                        chatContact.options.updateBurnAfterTime) {
-                  if (contactContent['deleteAfterSeconds'] == null){
-                    NLog.w('deleteAfterSeconds is null');
-                    chatContact.setBurnOptions(null);
-                  }
-                  else{
-                    chatContact.setBurnOptions(int.parse(deleteAfterSeconds));
-                  }
-                  setState(() {});
+                var contentJson = eventContent['content'];
+                var deleteAfterSeconds = contentJson['deleteAfterSeconds'].toString();
+                if (contentJson['deleteAfterSeconds'] == null){
+                  contactInfo.setBurnOptions(null);
                 }
+                else{
+                  contactInfo.setBurnOptions(int.parse(deleteAfterSeconds.toString()));
+                }
+                setState(() {});
               }
             }
           }
