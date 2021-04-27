@@ -450,12 +450,10 @@ class NKNClientCaller {
             if (savedRpcNodeList.length > 0) {
               savedList = savedRpcNodeList.split(',');
             }
-            if (savedList.length > 10) {
-              if (savedList.length > 10) {
-                savedList.removeRange(0, savedList.length - 10);
-              }
-            }
             List savingList = rpcNodeAddress.split(',');
+            if (savingList.length > 10) {
+              savingList.removeRange(0, savedList.length - 10);
+            }
             for (int i = 0; i < savingList.length; i++) {
               String savingNode = savingList[i];
               if (savingNode != null && savingNode.length > 0) {

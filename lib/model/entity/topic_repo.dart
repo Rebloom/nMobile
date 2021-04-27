@@ -235,7 +235,7 @@ class TopicRepo with Tag {
         'CREATE UNIQUE INDEX index_${tableName}_$topic ON $tableName ($topic);');
   }
 
-  static Future<void> updateTopicTableToV4(Database db) async{
+  static Future<void> updateTopicTableToV3(Database db) async{
     await db.execute(
         'ALTER TABLE $topic ADD COLUMN type INTEGER DEFAULT 0');
 

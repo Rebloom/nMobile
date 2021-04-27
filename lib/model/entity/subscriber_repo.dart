@@ -235,7 +235,7 @@ class SubscriberRepo with Tag {
     NLog.w('CREATE UNIQUE INDEX');
   }
 
-  static Future<void> updateTopicTableToV4(Database db) async{
+  static Future<void> updateTopicTableToV3(Database db) async{
     await db.execute(
         'ALTER TABLE subscriber ADD COLUMN member_status INTEGER DEFAULT 0');
     await db.execute(

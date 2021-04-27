@@ -47,34 +47,13 @@ class MessageDataCenter {
     Batch batchInsert = cdb.batch();
     for (MessageSchema message in mList){
       Map insertMessageInfo = message.toEntity(NKNClientCaller.currentChatId);
-
-      String pid = insertMessageInfo['pid'];
-      String msg_id = insertMessageInfo['msg_id'];
-      String sender = insertMessageInfo['sender'];
-      String receiver = insertMessageInfo['receiver'];
-      String targetId = insertMessageInfo['target_id'];
-      String type = insertMessageInfo['type'];
-      String topic = insertMessageInfo['topic'];
-      String options = '';
-      String content = insertMessageInfo['content'].toString();
-      int is_read = insertMessageInfo['is_read'];
-      int is_success = insertMessageInfo['is_success'];
-      int is_outbound = insertMessageInfo['is_outbound'];
-      int is_send_error = insertMessageInfo['is_send_error'];
-      int receive_time = insertMessageInfo['receive_time'];
-      int send_time = insertMessageInfo['send_time'];
-      int delete_time = insertMessageInfo['delete_time'];
-
-      String insertSQL = 'INSERT INTO Messages ("pid","msg_id","sender","receiver","target_id","type","topic","options","content",'
-          '"is_read","is_success","is_outbound","is_send_error","receive_time","send_time","send_time") '
-          'VALUES("$pid","$msg_id","$sender","$receiver","$targetId","$type","$topic","$options","$content", '
-          '$is_read,$is_success,$is_outbound,$is_send_error,$receive_time,$send_time,$delete_time) '
-          'WHERE NOT EXISTS(SELECT msg_id FROM Messages WHERE msg_id="$msg_id")';
       batchInsert.insert(MessageSchema.tableName, insertMessageInfo);
     }
     try{
-      NLog.w('batchInsertMessages MessageList is______'+mList.length.toString());
-      await batchInsert.commit();
+      List<dynamic> results = await batchInsert.commit();
+      for (var result in results){
+        NLog.w('batchInsert MessageList result is______'+result.toString());
+      }
     }
     catch(e){
       NLog.w('Wrong!!!!!batchInsertMessages E:'+e.toString());

@@ -43,7 +43,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   bool googleServiceOnInit = false;
 
   Timer watchDog;
-  int delayReceivingSeconds = 1;
+  int delayReceivingSeconds = 2;
   List<MessageSchema> batchReceivedList = new List();
 
   // int delayResendSeconds = 15;
@@ -90,17 +90,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
 
   _insertMessage(MessageSchema message) async {
     message.sendReceiptMessage();
-    _startWatchDog(message);
+    bool messageExist = await message.isReceivedMessageExist();
+    if (messageExist == false){
+      _startWatchDog(message);
+    }
   }
 
   _startWatchDog(MessageSchema msg) {
-    if (watchDog == null || watchDog.isActive == false) {
+    if (batchReceivedList == null){
       batchReceivedList = new List();
-      delayReceivingSeconds = 1;
-      watchDog = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
-        _batchInsertReceivingMessage();
-        delayReceivingSeconds--;
-      });
     }
     bool canAdd = true;
     if (batchReceivedList != null && batchReceivedList.length > 0){
@@ -117,6 +115,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       NLog.w('batchReceivedList duplicate add____'+msg.content.toString());
     }
     NLog.w('_startWatchDog batchReceivedList is____'+batchReceivedList.length.toString());
+
+    if (watchDog == null || watchDog.isActive == false) {
+
+      delayReceivingSeconds = 2;
+      watchDog = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
+        _batchInsertReceivingMessage();
+        delayReceivingSeconds--;
+      });
+    }
   }
 
   _batchInsertReceivingMessage() async{
@@ -133,7 +140,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   }
 
   _stopWatchDog() {
-    delayReceivingSeconds = 1;
+    delayReceivingSeconds = 2;
     if (watchDog.isActive) {
       watchDog.cancel();
       watchDog = null;
@@ -648,7 +655,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       NLog.w('Test Content is____'+message.content.toString());
     }
     /// judge if ReceivedMessage duplicated
-    // bool messageExist = await message.isReceivedMessageExist();
     // if (messageExist == true) {
     //   /// should retry here!!!
     //   if (message.isSuccess == false &&
@@ -893,6 +899,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       targetId = message.from;
     }
 
+    message.setMessageStatus(MessageStatus.MessageReceived);
     MessageModel model = await MessageModel.modelFromMessageFrom(message);
     yield MessageUpdateState(target: targetId, message: model);
   }
@@ -922,7 +929,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
           await contact.setBurnOptions(message.burnAfterSeconds);
         }
       }
-      NLog.w('contact.options is____' + contact.options.toJson());
     }
     NLog.w('!!!!contact._checkBurnOptions ___' +
         message.burnAfterSeconds.toString());

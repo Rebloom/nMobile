@@ -1,6 +1,7 @@
 
 import 'dart:convert';
 
+import 'package:nmobile/helpers/local_storage.dart';
 import 'package:nmobile/helpers/utils.dart';
 import 'package:nmobile/model/datacenter/contact_data_center.dart';
 import 'package:nmobile/model/entity/subscriber_repo.dart';
@@ -35,7 +36,8 @@ class NKNDataManager {
 
   static int dataBaseVersionV2 = 2;
   static int dataBaseVersionV3 = 3;
-  static int dataBaseVersionV4 = 4;
+  // static int dataBaseVersionV4 = 4;
+  // static int dataBaseVersionV5 = 5;
 
   static int currentDatabaseVersion = dataBaseVersionV3;
 
@@ -76,15 +78,16 @@ class NKNDataManager {
           await NKNDataManager.upgradeTopicTable2V3(db, dataBaseVersionV3);
           await NKNDataManager.upgradeContactSchema2V3(db, dataBaseVersionV3);
         }
-        if (newVersion >= dataBaseVersionV4){
-          await TopicRepo.updateTopicTableToV4(db);
-          await SubscriberRepo.updateTopicTableToV4(db);
+        if (newVersion >= dataBaseVersionV3 && oldVersion == 2){
+          await TopicRepo.updateTopicTableToV3(db);
+          await SubscriberRepo.updateTopicTableToV3(db);
         }
       },
     );
     await NKNDataManager.upgradeTopicTable2V3(db, dataBaseVersionV3);
     await NKNDataManager.upgradeContactSchema2V3(db, dataBaseVersionV3);
-    await NKNDataManager.updateSubsriberV3ToV4(db);
+    await NKNDataManager.updateSubscriberV3ToV4(db);
+
     return db;
   }
 
@@ -194,7 +197,7 @@ class NKNDataManager {
     }
   }
 
-  static updateSubsriberV3ToV4(Database db) async{
+  static updateSubscriberV3ToV4(Database db) async{
     String subsriberTable = 'subscriber';
     var sql =
         "SELECT * FROM sqlite_master WHERE TYPE = 'table' AND NAME = '$subsriberTable'";
@@ -209,6 +212,54 @@ class NKNDataManager {
             'ALTER TABLE $subsriberTable ADD COLUMN member_status BOOLEAN DEFAULT 0');
       }
     }
+  }
+
+  static alterMessageTableV3ToV4(Database db) async{
+    NLog.w('Find AllMessageCount is____alterMessageTableV3ToV4');
+    // List<Map> allMessageList = await MessageSchema.findAllOldMessages();
+
+    List<Map> allMessageList = await db.query(
+      MessageSchema.tableName,
+    );
+    // if (res != null){
+    //   NLog.w('Find findAllOldMessages is____'+res.length.toString());
+    //   return res;
+    // }
+
+
+    // NLog.w('Find AllMessageCount is____'+allMessageList.length.toString());
+    // String dropTable = 'DROP TABLE IF EXISTS Messages';
+    // await db.execute(dropTable);
+    // String nMessageTableCreate = '''
+    //   CREATE TABLE IF NOT EXISTS Messages (
+    //     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //     pid TEXT,
+    //     msg_id TEXT,
+    //     sender TEXT,
+    //     receiver TEXT,
+    //     target_id TEXT,
+    //     type TEXT,
+    //     topic TEXT,
+    //     content TEXT,
+    //     options TEXT,
+    //     is_read BOOLEAN,
+    //     is_success BOOLEAN,
+    //     is_outbound BOOLEAN,
+    //     is_send_error BOOLEAN,
+    //     receive_time INTEGER,
+    //     send_time INTEGER,
+    //     delete_time INTEGER,
+    //     UNIQUE(msg_id)
+    //   )''';
+    // await db.execute(nMessageTableCreate);
+    //
+    // Batch migrateBatch = db.batch();
+    // for (Map map in allMessageList){
+    //   migrateBatch.insert(MessageSchema.tableName, map);
+    //   NLog.w('MigrateData___'+map.toString());
+    // }
+    // await migrateBatch.commit();
+    // allMessageList.clear();
   }
 
   static upgradeContactSchema2V3(Database db, int dbVersion) async {
