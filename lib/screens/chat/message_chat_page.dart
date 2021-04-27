@@ -598,7 +598,6 @@ class _MessageChatPageState extends State<MessageChatPage> {
                         itemBuilder: (BuildContext context, int index) {
                           MessageModel currentMessageModel = _messages[index];
                           MessageSchema currentMessage = _messages[index].messageEntity;
-                          String fromShow = '';
 
                           bool showTime;
                           bool hideHeader = false;
@@ -629,13 +628,19 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
                           if (topicInfo != null){
                             if (currentMessage.contentType == ContentType.eventSubscribe){
+                              String fromUid = NL10ns.of(context).you+NL10ns.of(context).joined_channel;
+                              if (currentMessage.isSendMessage() == false){
+                                if (currentMessage.from != null && currentMessage.from.length > 6){
+                                  fromUid = currentMessage.from.substring(0,6)+NL10ns.of(context).joined_channel;
+                                }
+                              }
                               return ChatSystem(
                                 child: Wrap(
                                   alignment: WrapAlignment.center,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: <Widget>[
                                     Label(
-                                        '${currentMessage.isSendMessage() ? NL10ns.of(context).you : fromShow} ${NL10ns.of(context).joined_channel}'),
+                                        '$fromUid'),
                                   ],
                                 ),
                               );
