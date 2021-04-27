@@ -806,21 +806,6 @@ class MessageSchema extends Equatable {
     return null;
   }
 
-  // static Future<List> findAllOldMessages(Database cdb) async{
-  //   // Database cdb = await NKNDataManager().currentDatabase();
-  //   var res = await cdb.query(
-  //     MessageSchema.tableName,
-  //   );
-  //   if (res != null){
-  //     NLog.w('Find findAllOldMessages is____'+res.length.toString());
-  //     return res;
-  //   }
-  //
-  //
-  //   NLog.w('Find findAllOldMessages is null');
-  //   return null;
-  // }
-
   Future<MessageSchema> receiptMessage() async {
     String queryID = '';
     if (contentType == ContentType.receipt) {

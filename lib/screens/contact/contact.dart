@@ -166,7 +166,6 @@ class _ContactScreenState extends State<ContactScreen> {
       await currentUser.setBurnOptions(null);
     } else {
       _burnValue = BurnViewUtil.burnValueArray[_burnIndex].inSeconds;
-      NLog.w('_saveAndSendBurnMessage_____!!!!' + _burnValue.toString());
       await currentUser.setBurnOptions(_burnValue);
     }
     var sendMsg = MessageSchema.formSendMessage(

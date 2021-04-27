@@ -624,20 +624,21 @@ class ContactSchema {
     }
   }
 
-  Future sendActionContactOptions() async {
-    String msgId = uuid.v4();
-    Map data = {
-      'id': msgId,
-      'contentType': ContentType.eventContactOptions,
-      'content': {'deleteAfterSeconds': options?.deleteAfterSeconds},
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
-    try {
-      NKNClientCaller.sendText([clientAddress], jsonEncode(data), msgId);
-    } catch (e) {
-      NLog.w('Wrong!!! sendActionContactOptions' + e.toString());
-    }
-  }
+  // Future sendActionContactOptions() async {
+  //   String msgId = uuid.v4();
+  //   Map data = {
+  //     'id': msgId,
+  //     'contentType': ContentType.eventContactOptions,
+  //     'content': {'deleteAfterSeconds': options?.deleteAfterSeconds},
+  //     'timestamp': DateTime.now().millisecondsSinceEpoch,
+  //   };
+  //   NLog.w('sendActionContactOptions_____'+options.toString());
+  //   // try {
+  //   //   NKNClientCaller.sendText([clientAddress], jsonEncode(data), msgId);
+  //   // } catch (e) {
+  //   //   NLog.w('Wrong!!! sendActionContactOptions' + e.toString());
+  //   // }
+  // }
 
   Future<bool> setOptionColor() async {
     int random = Random().nextInt(DefaultTheme.headerBackgroundColor.length);

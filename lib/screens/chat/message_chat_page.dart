@@ -427,7 +427,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
         if (sendMsg.options == null){
           sendMsg.options = {};
         }
-        sendMsg.options['deleteAfterSeconds'] = contactInfo.options.deleteAfterSeconds.toString();
+        sendMsg.options['deleteAfterSeconds'] = contactInfo.options.deleteAfterSeconds;
         sendMsg.burnAfterSeconds = contactInfo.options.deleteAfterSeconds;
       }
     }
