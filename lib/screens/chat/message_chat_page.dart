@@ -15,10 +15,8 @@ import 'package:nmobile/blocs/channel/channel_state.dart';
 import 'package:nmobile/blocs/chat/chat_bloc.dart';
 import 'package:nmobile/blocs/chat/chat_event.dart';
 import 'package:nmobile/blocs/chat/chat_state.dart';
-import 'package:nmobile/blocs/contact/contact_bloc.dart';
 import 'package:nmobile/blocs/message/message_bloc.dart';
 import 'package:nmobile/blocs/message/message_event.dart';
-import 'package:nmobile/blocs/message/message_state.dart';
 import 'package:nmobile/blocs/nkn_client_caller.dart';
 import 'package:nmobile/components/CommonUI.dart';
 import 'package:nmobile/components/box/body.dart';
@@ -287,6 +285,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
           MessageModel updateModel = state.message;
           MessageSchema updateMessage = updateModel.messageEntity;
           if (updateMessage == null){
+            NLog.w('return of updateMessage');
             return;
           }
 
@@ -367,10 +366,8 @@ class _MessageChatPageState extends State<MessageChatPage> {
             if (updateMessage.from == targetId || updateMessage.from == NKNClientCaller.currentChatId){
               Map<String,dynamic> eventContent = jsonDecode(updateMessage.content);
               if (eventContent['content'] != null && updateMessage.isSendMessage() == false) {
-                int optionType = eventContent['optionType'];
-                if (optionType == 0){
+                if (eventContent['optionType'].toString() == '0'){
                   var contentJson = eventContent['content'];
-                  NLog.w('eventContent is_____'+eventContent.toString());
                   var deleteAfterSeconds = contentJson['deleteAfterSeconds'].toString();
                   if (contentJson['deleteAfterSeconds'] == null){
                     contactInfo.setBurnOptions(null);
