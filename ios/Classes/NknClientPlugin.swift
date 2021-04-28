@@ -49,8 +49,8 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
     
     let NKN_METHOD_GET_SUBSCRIPTION = "getSubscription"
     let NKN_METHOD_GET_BLOCK_HEIGHT = "getBlockHeight"
+    let NKN_METHOD_GET_NONCE = "getNonce"
     
-    let NKN_METHOD_GET_SUBSCRIBER_COUNT = "getSubscribersCount"
     let NKN_METHOD_GET_SUBSCRIBERS = "getSubscribers"
     
     let NKN_METHOD_FETCH_DEVICE_TOKEN = "fetchDeviceToken"
@@ -60,6 +60,8 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
     let NKN_METHOD_COMBINE_PIECES = "combinePieces"
     
     let NKN_METHOD_PUSH_CONTENT = "nknPush"
+    
+    let NKN_METHOD_GET_SUBSCRIBER_COUNT = "getSubscribersCount"
 
     var combinedData:Data = Data.init()
 
@@ -101,14 +103,16 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
                 unsubscribe(call, result)
             case NKN_METHOD_GET_SUBSCRIBER_COUNT:
                 getSubscribersCount(call, result)
+            case NKN_METHOD_GET_BLOCK_HEIGHT:
+                getBlockHeight(call, result)
+            case NKN_METHOD_GET_NONCE:
+                getNonce(call, result)
             case NKN_METHOD_GET_SUBSCRIBERS:
                 getSubscribers(call, result)
             case NKN_METHOD_GET_SUBSCRIPTION:
                 getSubscription(call, result)
             case NKN_METHOD_FETCH_DEVICE_TOKEN:
                 fetchDeviceToken(call, result)
-            case NKN_METHOD_GET_BLOCK_HEIGHT:
-                getBlockHeight(call, result)
             case NKN_METHOD_FETCH_FCM_TOKEN:
                 fetchFCMToken(call, result)
             case NKN_METHOD_INTO_PIECES:
@@ -389,26 +393,24 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
         let deviceToken = args["deviceToken"] as! String
         let pushContent = args["pushContent"] as! String
         
-        if (deviceToken != nil){
-            if (deviceToken.count > 0){
-                let content = pushContent as! String;
-                if (content.count > 0){
-                    let pushService:NKNPushService = NKNPushService.shared();
-                    if (deviceToken.count == 64){
-                        pushService.pushContent(content, token: deviceToken);
+        if (deviceToken.count > 0){
+            let content = pushContent;
+            if (content.count > 0){
+                let pushService:NKNPushService = NKNPushService.shared();
+                if (deviceToken.count == 64){
+                    pushService.pushContent(content, token: deviceToken);
+                }
+                else if (deviceToken.count > 64){
+                    // Send Notification to Android Device throw FCM
+                    if (deviceToken.count == 163){
+                        pushService.pushContent(toFCM: content, byToken: deviceToken)
                     }
-                    else if (deviceToken.count > 64){
-                        // Send Notification to Android Device throw FCM
-                        if (deviceToken.count == 163){
-                            pushService.pushContent(toFCM: content, byToken: deviceToken)
-                        }
-                        else if (deviceToken.count > 163){
-                            let fcmGapString = "__FCMToken__:"
-                            let sList = deviceToken.components(separatedBy: fcmGapString)
-                            let dropFcmToken = sList[0]
-                            NSLog("after drop Fcm token is %@",dropFcmToken);
-                            pushService.pushContent(content, token: dropFcmToken);
-                        }
+                    else if (deviceToken.count > 163){
+                        let fcmGapString = "__FCMToken__:"
+                        let sList = deviceToken.components(separatedBy: fcmGapString)
+                        let dropFcmToken = sList[0]
+                        NSLog("after drop Fcm token is %@",dropFcmToken);
+                        pushService.pushContent(content, token: dropFcmToken);
                     }
                 }
             }
@@ -497,6 +499,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
         let duration = args["duration"] as! Int
         let meta = args["meta"] as? String
         let fee = args["fee"] as? String ?? "0"
+        let nonce = args["nonce"] as? Int64 ?? 0
         
         subscriberWorkItem = DispatchWorkItem{
             guard let client = self.nknClient else {
@@ -506,6 +509,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
             
             let transactionConfig: NknTransactionConfig = NknTransactionConfig.init()
             transactionConfig.fee = fee
+            transactionConfig.nonce = nonce
 
             var error: NSError?
             
@@ -538,7 +542,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
 
             let transactionConfig: NknTransactionConfig = NknTransactionConfig.init()
             transactionConfig.fee = fee
-
+            
             var error: NSError?
             
             let hash = client.unsubscribe(identifier, topic: topicHash, config: transactionConfig, error: &error)
@@ -701,7 +705,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
     }
     
     func getBlockHeight(_ call: FlutterMethodCall, _ result: FlutterResult){
-        sendMessageWorkItem = DispatchWorkItem{
+        subscriberWorkItem = DispatchWorkItem{
             let args = call.arguments as! [String: Any]
             let _id = args["_id"] as! String
             
@@ -721,7 +725,31 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
                 self.clientEventSink!(FlutterError(code: _id, message: self.NKN_METHOD_GET_BLOCK_HEIGHT, details: error.localizedDescription))
             }
         }
-        sendMessageQueue.async(execute: sendMessageWorkItem!)
+        subscriberQueue.async(execute: subscriberWorkItem!)
+    }
+    
+    func getNonce(_ call:FlutterMethodCall, _ result: FlutterResult){
+        subscriberWorkItem = DispatchWorkItem{
+            let args = call.arguments as! [String: Any]
+            let _id = args["_id"] as! String
+            
+            do {
+                guard let client = self.nknClient else {
+                    self.clientEventSink?(FlutterError.init(code: _id, message: self.NKN_METHOD_GET_BLOCK_HEIGHT, details: "noClient"))
+                    return
+                }
+                var nonce: Int64 = 0
+                try client.getNonce(true, ret0_: &nonce)
+                var resp: [String: Any] = [String: Any]()
+                resp["event"] = self.NKN_METHOD_GET_NONCE
+                resp["_id"] = _id
+                resp["nonce"] = nonce
+                self.clientEventSink!(resp)
+            } catch let error {
+                self.clientEventSink!(FlutterError(code: _id, message: self.NKN_METHOD_GET_NONCE, details: error.localizedDescription))
+            }
+        }
+        subscriberQueue.async(execute: subscriberWorkItem!)
     }
     
     func fetchDeviceToken(_ call: FlutterMethodCall, _ result: FlutterResult){

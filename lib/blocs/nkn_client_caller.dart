@@ -44,7 +44,6 @@ class NKNClientCaller {
   static NKNClientBloc clientBloc;
   static Map<String, Completer> _clientEventQueue = Map<String, Completer>();
 
-  // static Map<String, Map> _clientEventData = Map<String, Map>();
 
   createClient(Uint8List seed, String identifier, String clientAddress) {
     Completer<String> completer = Completer<String>();
@@ -230,6 +229,11 @@ class NKNClientCaller {
     String id = completer.hashCode.toString();
     _clientEventQueue[id] = completer;
 
+    if (Global.currentNonce == 0){
+      Global.currentNonce = await fetchNonce();
+      NLog.w('Global.currentNonce is____'+Global.currentNonce.toString());
+    }
+
     Map dataInfo = {
       '_id': id,
       'identifier': identifier,
@@ -237,9 +241,12 @@ class NKNClientCaller {
       'duration': duration,
       'fee': fee,
       'meta': meta,
+      'nonce': Global.currentNonce,
     };
+    NLog.w('Subscriber DataInfo is____'+dataInfo.toString());
     try {
       _methodChannel.invokeMethod('subscribe', dataInfo);
+      Global.currentNonce = Global.currentNonce++;
     } catch (e) {
       NLog.w('subscribe completeE:' + e.toString());
       completer.completeError(e);
@@ -348,6 +355,22 @@ class NKNClientCaller {
       _methodChannel.invokeMethod('getBlockHeight', dataInfo);
     } catch (e) {
       NLog.w('fetchBlockHeight complete E:' + e.toString());
+      completer.completeError(e);
+    }
+    return completer.future;
+  }
+
+  static Future<int> fetchNonce() async{
+    Completer<int> completer = Completer<int>();
+    String eventId = completer.hashCode.toString();
+    _clientEventQueue[eventId] = completer;
+    Map dataInfo = {
+      '_id': eventId,
+    };
+    try {
+      _methodChannel.invokeMethod('getNonce', dataInfo);
+    } catch (e) {
+      NLog.w('fetchNonce complete E:' + e.toString());
       completer.completeError(e);
     }
     return completer.future;
@@ -525,7 +548,6 @@ class NKNClientCaller {
 
         case 'subscribe':
           String result = res['data'];
-          NLog.w('subscribe result is__' + result.toString());
           _clientEventQueue[eventKey].complete(result);
           break;
         case 'unsubscribe':
@@ -549,8 +571,6 @@ class NKNClientCaller {
             String key = dataMap.keys.toList()[i];
             String value = dataMap.values.toList()[i];
             if (value != null && value.toString().length > 0){
-              NLog.w('Value Key is____'+key.toString());
-              NLog.w('Value is____'+value.toString());
               subscriberMap[key] = value;
             }
             else{
@@ -563,6 +583,13 @@ class NKNClientCaller {
         case 'getBlockHeight':
           int blockHeight = res['height'];
           _clientEventQueue[eventKey].complete(blockHeight);
+          break;
+        case 'getNonce':
+          NLog.w('Result is_____'+res.toString());
+          int currentNonce = res['nonce'];
+          Global.currentNonce = currentNonce;
+          NLog.w('CurrentNonce is_____'+Global.currentNonce.toString());
+          _clientEventQueue[eventKey].complete(currentNonce);
           break;
 
         case 'fetchDeviceToken':

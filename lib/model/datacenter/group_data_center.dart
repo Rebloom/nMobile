@@ -88,6 +88,8 @@ class GroupDataCenter{
       NLog.w('Wrong!!!__updateSub is null');
     }
 
+    int currentNonce = await NKNClientCaller.fetchNonce();
+
     bool updateResult;
     if (invite){
       NLog.w('UpdateStatus to MemberInvited');
@@ -168,7 +170,7 @@ class GroupDataCenter{
   static Future<bool> updatePrivateGroupMemberSubscribe(String topicHash, String appendMetaIndex, String cMapString) async{
     double minerFee = 0;
     try {
-      await NKNClientCaller.subscribe(
+      String result = await NKNClientCaller.subscribe(
         identifier: appendMetaIndex,
         topicHash: topicHash,
         duration: 400000,
@@ -176,7 +178,7 @@ class GroupDataCenter{
         meta: cMapString,
       );
     } catch (e) {
-      NLog.e('uploadPermissionMeta' + e.toString());
+      NLog.e('updatePrivateGroupMemberSubscribe' + e.toString());
       return false;
     }
     return true;
@@ -545,7 +547,13 @@ class GroupDataCenter{
               await subRepo.updateMemberStatus(sub, MemberStatus.MemberSubscribed);
             }
             else if (sub.memberStatus == MemberStatus.MemberPublishRejected){
-              await subRepo.updateMemberStatus(sub, MemberStatus.MemberSubscribed);
+              /// If group owner do not update this.
+              if (owner == NKNClientCaller.currentChatId){
+
+              }
+              else{
+                await subRepo.updateMemberStatus(sub, MemberStatus.MemberSubscribed);
+              }
             }
             else{
               // MemberSubscribed

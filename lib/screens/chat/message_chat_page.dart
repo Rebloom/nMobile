@@ -262,12 +262,10 @@ class _MessageChatPageState extends State<MessageChatPage> {
 
       /// when background to foreground updateMessage.updateDeleteTime();
       _authSubscription = _authBloc.listen((state){
-        NLog.w('UpdateMessageListState state is______'+state.toString());
         if (state is AuthToFrontState){
           for (MessageModel model in _messages){
             MessageSchema message = model.messageEntity;
             if (message.burnAfterSeconds != null) {
-              NLog.w('UpdateMessageListState Global.appState is______'+Global.appState.toString());
               if (Global.appState == AppLifecycleState.resumed){
                 if (message.deleteTime == null){
                   message.deleteTime = DateTime.now().add(

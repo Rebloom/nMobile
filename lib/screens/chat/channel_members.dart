@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nmobile/blocs/channel/channel_bloc.dart';
 import 'package:nmobile/blocs/channel/channel_event.dart';
@@ -427,12 +428,15 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
         member.chatId != NKNClientCaller.currentChatId) {
       acceptAction() async {
         if (member.memberStatus != MemberStatus.MemberSubscribed) {
+          EasyLoading.show();
           bool acceptResult = await GroupDataCenter.updatePrivatePermissionList(widget.topic.topic, member.chatId, true);
           if (acceptResult == false){
+            EasyLoading.dismiss();
             showToast(NL10ns.of(context).something_went_wrong);
             return;
           }
         }
+        EasyLoading.dismiss();
         showToast(NL10ns.of(context).invitation_sent);
         _inviteMessage(member.chatId);
         _refreshMemberList();
@@ -440,12 +444,15 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
 
       rejectAction() async {
         if (member.memberStatus != MemberStatus.MemberPublishRejected) {
+          EasyLoading.show();
           bool rejectResult = await GroupDataCenter.updatePrivatePermissionList(widget.topic.topic, member.chatId, false);
           if (rejectResult == false){
+            EasyLoading.dismiss();
             showToast(NL10ns.of(context).something_went_wrong);
             return;
           }
         }
+        EasyLoading.dismiss();
         showToast(NL10ns.of(context).rejected);
         _refreshMemberList();
       }

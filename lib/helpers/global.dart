@@ -15,7 +15,6 @@ import 'package:path_provider/path_provider.dart';
 import 'local_notification.dart';
 
 class Global {
-  static LOG _LOG = LOG('Global'.tag());
   static BuildContext appContext;
   static String locale;
   static String currentOtherChatId;
@@ -40,7 +39,10 @@ class Global {
   static bool clientCreated = false;
   static bool clientNoConnect = false;
 
+  /// use to re subscribe topic
   static int topicBlockHeightExpireWarnHeight = 300000;
+  /// use to hold nonce by dart code
+  static int currentNonce = 0;
   /// factory mode
   factory Global() => _getInstance();
 
