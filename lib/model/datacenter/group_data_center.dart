@@ -149,7 +149,6 @@ class GroupDataCenter{
       String cMapString = jsonEncode(cMap);
       NLog.w('cMapString is________'+cMapString);
 
-
       /// save last subscribe time. If operated, operated 20s later.
       String appendMetaIndex = '__${pageIndex}__.__permission__';
       NLog.w('appendMetaIndex is________'+appendMetaIndex.toString());
@@ -200,7 +199,7 @@ class GroupDataCenter{
           indexPermiPage: 0,
           timeCreate: DateTime.now().millisecondsSinceEpoch,
           memberStatus: MemberStatus.MemberInvited);
-      subRepo.insertSubscriber(insertSub);
+      await subRepo.insertSubscriber(insertSub);
 
       bool onChainSuccess = await appendOneMemberOnChain(insertSub);
       if (onChainSuccess == false){

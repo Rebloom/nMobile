@@ -495,6 +495,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
         }
         else {
           int memberStatus = await GroupDataCenter.addPrivatePermissionList(topic.topic, address);
+          NLog.w('inviteAndAcceptAction memberStatus is_____'+memberStatus.toString());
           String alertText = NL10ns.of(context).invited_already;
           if (memberStatus == MemberStatus.MemberSubscribed){
             showToast(NL10ns.of(context).group_member_already);
@@ -531,5 +532,6 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     else{
       _inviteMessage(address);
     }
+    _refreshMemberList();
   }
 }
