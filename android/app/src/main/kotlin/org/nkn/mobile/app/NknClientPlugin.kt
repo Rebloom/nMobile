@@ -103,6 +103,9 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
             "getBlockHeight" -> {
                 getBlockHeight(call, result)
             }
+            "getNonce" -> {
+                getNonce(call, result)
+            }
             "fetchDeviceToken" -> {
                 getDeviceToken(call, result)
             }
@@ -627,6 +630,30 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
         }
     }
 
+    private fun getNonce(call: MethodCall, result: MethodChannel.Result) {
+        val _id = call.argument<String>("_id")!!
+        result.success(null)
+
+        subscribersHandler.post {
+            try {
+                val nonce = multiClient!!.getNonce(true);
+                val resp = hashMapOf(
+                        "_id" to _id,
+                        "event" to "getNonce",
+                        "nonce" to nonce
+                )
+                App.runOnMainThread {
+                    clientEventSink.success(resp)
+                }
+            } catch (e: Exception) {
+                Log.e("getNonce E:", "getNonce | e:", e)
+                App.runOnMainThread {
+                    clientEventSink.error(_id, "getNonce", e.message)
+                }
+            }
+        }
+    }
+
     private fun getBlockHeight(call: MethodCall, result: MethodChannel.Result) {
         val _id = call.argument<String>("_id")!!
         result.success(null)
@@ -643,7 +670,7 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
                     clientEventSink.success(resp)
                 }
             } catch (e: Exception) {
-                Log.e("getBlockHeightE", "getSubscription | e:", e)
+                Log.e("getBlockHeightE", "getBlockHeight | e:", e)
                 App.runOnMainThread {
                     clientEventSink.error(_id, "getBlockHeight", e.message)
                 }
