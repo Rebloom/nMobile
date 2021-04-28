@@ -29,6 +29,7 @@ import 'package:nmobile/components/chat/system.dart';
 import 'package:nmobile/components/header/header.dart';
 import 'package:nmobile/components/label.dart';
 import 'package:nmobile/components/layout/expansion_layout.dart';
+import 'package:nmobile/components/nkn_text_field.dart';
 import 'package:nmobile/consts/theme.dart';
 import 'package:nmobile/helpers/format.dart';
 import 'package:nmobile/helpers/global.dart';
@@ -1317,7 +1318,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
           children: <Widget>[
             Expanded(
               flex: 1,
-              child: TextField(
+              child: NKNTextField(
                 maxLines: 5,
                 minLines: 1,
                 controller: _sendController,

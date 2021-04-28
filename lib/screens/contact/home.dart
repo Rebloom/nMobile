@@ -16,6 +16,7 @@ import 'package:nmobile/components/button.dart';
 import 'package:nmobile/components/dialog/modal.dart';
 import 'package:nmobile/components/header/header.dart';
 import 'package:nmobile/components/label.dart';
+import 'package:nmobile/components/nkn_text_field.dart';
 import 'package:nmobile/consts/theme.dart';
 import 'package:nmobile/event/eventbus.dart';
 import 'package:nmobile/helpers/format.dart';
@@ -223,7 +224,7 @@ class _ContactHomeState extends State<ContactHome> {
                           ),
                           Expanded(
                             flex: 1,
-                            child: TextField(
+                            child: NKNTextField(
                               onChanged: (val) {
                                 searchAction(val);
                               },
