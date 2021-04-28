@@ -503,10 +503,12 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
         val duration = call.argument<Int>("duration")!!
         val meta = call.argument<String>("meta")
         val fee = call.argument<String>("fee") ?: "0"
+        val nonce = call.argument<Long>("nonce")!!
         result.success(null)
 
         val transactionConfig = TransactionConfig()
         transactionConfig.fee = fee
+        transactionConfig.nonce = nonce
 
         subscribersHandler.post {
             try {
