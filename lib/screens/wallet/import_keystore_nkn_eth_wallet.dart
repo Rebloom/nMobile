@@ -18,6 +18,7 @@ import 'package:nmobile/l10n/localization_intl.dart';
 import 'package:nmobile/model/eth_erc20_token.dart';
 import 'package:nmobile/plugins/nkn_wallet.dart';
 import 'package:nmobile/model/entity/wallet.dart';
+import 'package:nmobile/screens/chat/authentication_helper.dart';
 import 'package:nmobile/utils/nlog_util.dart';
 import 'package:oktoast/oktoast.dart';
 
@@ -49,9 +50,17 @@ class _ImportKeystoreWalletState extends State<ImportKeystoreWallet>
   void initState() {
     super.initState();
     _walletsBloc = BlocProvider.of<WalletsBloc>(context);
+
+    TimerAuth.onOtherPage = true;
   }
 
-  next() async {
+  @override
+  void dispose(){
+    super.dispose();
+    TimerAuth.onOtherPage = true;
+  }
+
+  nextStep() async {
     if ((_formKey.currentState as FormState).validate()) {
       (_formKey.currentState as FormState).save();
       EasyLoading.show();
@@ -81,12 +90,6 @@ class _ImportKeystoreWalletState extends State<ImportKeystoreWallet>
         EasyLoading.dismiss();
         showToast(NL10ns.of(context).password_wrong);
         NLog.w('ImportKeystoreWallet__ E:' + e.toString());
-        // if (e.message == ConstUtils.WALLET_PASSWORD_ERROR) {
-        //
-        // } else {
-        //   showToast(NL10ns.of(context).password_wrong);
-        //   // showToast(e.message);
-        // }
       }
     }
   }
@@ -162,8 +165,13 @@ class _ImportKeystoreWalletState extends State<ImportKeystoreWallet>
                                     onTap: () async {
                                       File file = await FilePicker.getFile();
                                       if (file != null) {
-                                        _keystoreController.text =
-                                            file.readAsStringSync();
+                                        String fileText = file.readAsStringSync();
+                                        NLog.w('FileText is_-_____'+fileText.toString());
+                                        NLog.w('FileText length is______'+fileText.length.toString());
+                                        setState(() {
+                                          _keystoreController.text =
+                                              fileText;
+                                        });
                                       }
                                     },
                                     child: Container(
@@ -238,7 +246,7 @@ class _ImportKeystoreWalletState extends State<ImportKeystoreWallet>
                             ? NL10ns.of(context).import_nkn_wallet
                             : NL10ns.of(context).import_ethereum_wallet,
                         disabled: !_formValid,
-                        onPressed: next,
+                        onPressed: nextStep,
                       ),
                     ),
                   ],
