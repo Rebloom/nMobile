@@ -32,6 +32,7 @@ class MessageListModel {
   });
 
   static Future<MessageListModel> parseEntity(Map e) async {
+    NLog.w('Content is______'+e.toString());
     var res = MessageListModel(
       targetId: e['target_id'],
       sender: e['sender'],

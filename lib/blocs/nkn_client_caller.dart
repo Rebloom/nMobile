@@ -474,9 +474,6 @@ class NKNClientCaller {
               savedList = savedRpcNodeList.split(',');
             }
             List savingList = rpcNodeAddress.split(',');
-            if (savingList.length > 10) {
-              savingList.removeRange(0, savedList.length - 10);
-            }
             for (int i = 0; i < savingList.length; i++) {
               String savingNode = savingList[i];
               if (savingNode != null && savingNode.length > 0) {
@@ -488,6 +485,9 @@ class NKNClientCaller {
                   NLog.w('duplicate saved Node__' + savingNode.toString());
                 }
               }
+            }
+            if (savedList.length > 10) {
+              savedList.removeRange(0, savedList.length - 10);
             }
             NLog.w('savedList count is____' + savedList.length.toString());
             rpcNodeAddress = savedList.join(',');

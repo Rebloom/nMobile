@@ -66,8 +66,6 @@ class ChannelBloc extends Bloc<ChannelMembersEvent, ChannelState> {
               clientAddress: sub.chatId);
           await contact.insertContact();
         }
-        NLog.w('contact.sub.chatId is____'+sub.chatId.toString());
-
         MemberVo member = MemberVo(
           name: contact.getShowName,
           chatId: sub.chatId,

@@ -32,7 +32,6 @@ import 'package:nmobile/helpers/utils.dart';
 import 'package:nmobile/l10n/localization_intl.dart';
 import 'package:nmobile/model/datacenter/contact_data_center.dart';
 import 'package:nmobile/model/datacenter/group_data_center.dart';
-import 'package:nmobile/model/db/nkn_data_manager.dart';
 import 'package:nmobile/model/entity/message_list_model.dart';
 import 'package:nmobile/model/entity/topic_repo.dart';
 import 'package:nmobile/model/popular_channel.dart';
@@ -272,7 +271,9 @@ class MessageListPageState extends State<MessageListPage>
               builder: (context, messageState){
                 NLog.w('messageState.messageState is_____'+messageState.toString());
                 if (messageState is FetchMessageListState){
-                  _messagesList = messageState.messageList;
+                  if (messageState.messageList != null && messageState.messageList.length > 0){
+                    _messagesList = messageState.messageList;
+                  }
                 }
                 else if (messageState is FetchMoreMessageListState){
                   if (messageState.messageList != null && messageState.messageList.length > 0){
@@ -284,7 +285,7 @@ class MessageListPageState extends State<MessageListPage>
                 else if (messageState is UpdateMessageListState){
                   NLog.w('UpdateMessageListState called');
                   if (messageState.updateModel == null){
-                    // NLog.w('_startRefreshMessage called');
+                    NLog.w('_startRefreshMessage called');
                     // _startRefreshMessage();
                   }
                   else{
@@ -916,7 +917,7 @@ class MessageListPageState extends State<MessageListPage>
         arguments: argument).then((value) {
       NLog.w('MarkMessageListAsReadEvent called____'+targetId);
       if (updateModel != null){
-        _messageBloc.add(UpdateMessageListEvent(updateModel.targetId));
+        _startRefreshMessage();
       }
       if (value == true) {
         NLog.w('_routeToGroupChatPage called____');

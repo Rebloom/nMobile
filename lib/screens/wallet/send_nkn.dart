@@ -206,7 +206,6 @@ class _SendNknScreenState extends State<SendNknScreen> {
                               return Container(
                                 decoration: BoxDecoration(
                                   color: DefaultTheme.backgroundLightColor,
-//                                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                                 ),
                                 child: Form(
                                   key: _formKey,
@@ -234,11 +233,6 @@ class _SendNknScreenState extends State<SendNknScreen> {
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
                                                 children: [
-//                                                  Label(
-//                                                    NMobileLocalizations.of(context).from,
-//                                                    type: LabelType.h4,
-//                                                    textAlign: TextAlign.start,
-//                                                  ),
                                                   WalletDropdown(
                                                     title: NL10ns.of(context)
                                                         .select_asset_to_receive,

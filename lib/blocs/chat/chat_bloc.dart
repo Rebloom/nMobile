@@ -90,10 +90,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
 
   _insertMessage(MessageSchema message) async {
     message.sendReceiptMessage();
-    bool messageExist = await message.isReceivedMessageExist();
-    if (messageExist == false){
-      _startWatchDog(message);
-    }
+
+    _startWatchDog(message);
   }
 
   _startWatchDog(MessageSchema msg) {
@@ -123,10 +121,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   }
 
   _batchInsertReceivingMessage() async{
-    NLog.w('_batchInsertReceivingMessage11 count is____'+batchReceivedList.length.toString());
     if((delayReceivingSeconds == 0 && batchReceivedList.length > 0) ||
         batchReceivedList.length > 500){
-      NLog.w('_batchInsertReceivingMessage count is____'+batchReceivedList.length.toString());
       await MessageDataCenter.batchInsertMessages(batchReceivedList);
       batchReceivedList.clear();
       _stopWatchDog();
@@ -365,7 +361,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
         NLog.w('Base64Decode Error:' + e.toString());
       }
 
-      NLog.w('Step4__  fBytes   ' + fBytes.length.toString());
       String name = hexEncode(md5.convert(fBytes).bytes);
       name = onePieceMessage.msgId + '-nkn-' + name;
 
@@ -651,30 +646,31 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       NLog.w('Test Content is____'+message.content.toString());
     }
     /// judge if ReceivedMessage duplicated
-    // if (messageExist == true) {
-    //   /// should retry here!!!
-    //   if (message.isSuccess == false &&
-    //       message.contentType != ContentType.nknOnePiece) {
-    //     message.sendReceiptMessage();
-    //   }
-    //   NLog.w('ReceiveMessage from AnotherNode__');
-    //   return;
-    // }
-    // else{
-    //   /// judge ReceiveMessage if D-Chat PC groupMessage Receipt
-    //   MessageSchema dChatPcReceipt = await MessageSchema.findMessageWithMessageId(event.message.msgId);
-    //   if (dChatPcReceipt != null && dChatPcReceipt.contentType != ContentType.nknOnePiece){
-    //     dChatPcReceipt = await dChatPcReceipt.receiptMessage();
-    //
-    //     dChatPcReceipt.content = message.msgId;
-    //     dChatPcReceipt.contentType = ContentType.receipt;
-    //     dChatPcReceipt.topic = null;
-    //
-    //     MessageModel model = await MessageModel.modelFromMessageFrom(dChatPcReceipt);
-    //     yield MessageUpdateState(target: dChatPcReceipt.from, message: model);
-    //     return;
-    //   }
-    // }
+    bool messageExist = await message.isReceivedMessageExist();
+    if (messageExist == true) {
+      /// should retry here!!!
+      if (message.isSuccess == false &&
+          message.contentType != ContentType.nknOnePiece) {
+        message.sendReceiptMessage();
+      }
+      NLog.w('ReceiveMessage from AnotherNode__');
+      return;
+    }
+    else{
+      /// judge ReceiveMessage if D-Chat PC groupMessage Receipt
+      MessageSchema dChatPcReceipt = await MessageSchema.findMessageWithMessageId(event.message.msgId);
+      if (dChatPcReceipt != null && dChatPcReceipt.contentType != ContentType.nknOnePiece){
+        dChatPcReceipt = await dChatPcReceipt.receiptMessage();
+
+        dChatPcReceipt.content = message.msgId;
+        dChatPcReceipt.contentType = ContentType.receipt;
+        dChatPcReceipt.topic = null;
+
+        MessageModel model = await MessageModel.modelFromMessageFrom(dChatPcReceipt);
+        yield MessageUpdateState(target: dChatPcReceipt.from, message: model);
+        return;
+      }
+    }
 
     if (message.contentType == ContentType.receipt) {
       MessageSchema oMessage = await message.receiptMessage();
