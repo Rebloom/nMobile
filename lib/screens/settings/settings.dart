@@ -30,6 +30,8 @@ import 'package:nmobile/utils/const_utils.dart';
 import 'package:nmobile/utils/extensions.dart';
 import 'package:oktoast/oktoast.dart';
 
+import '../../utils/copy_utils.dart';
+
 class SettingsScreen extends StatefulWidget {
   static const String routeName = '/settings';
 
@@ -467,6 +469,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         ),
                         onPressed: () async {
 //                          launchURL('mailto:nmobile@nkn.org');
+                        CopyUtils.copyAction(context, 'nmobile@nkn.org');
                         },
                       ),
                     ),
