@@ -17,6 +17,12 @@ class FetchChannelMembersEvent extends ChannelMembersEvent {
   FetchChannelMembersEvent(this.topicName);
 }
 
+class FetchMoreChannelMembersEvent extends ChannelMembersEvent{
+  final String topicName;
+  final int startIndex;
+  FetchMoreChannelMembersEvent(this.topicName, this.startIndex);
+}
+
 class FetchOwnChannelMembersEvent extends ChannelMembersEvent {
   final String topicName;
   FetchOwnChannelMembersEvent(this.topicName);

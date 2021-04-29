@@ -15,6 +15,8 @@ class ChannelBloc extends Bloc<ChannelMembersEvent, ChannelState> {
   @override
   ChannelState get initialState => ChannelUpdateState();
 
+  SubscriberRepo _subscriberRepo = SubscriberRepo();
+
   @override
   Stream<ChannelState> mapEventToState(ChannelMembersEvent event) async* {
     if (event is ChannelOwnMemberCountEvent) {
@@ -32,16 +34,19 @@ class ChannelBloc extends Bloc<ChannelMembersEvent, ChannelState> {
       yield ChannelMembersState(count, topicName);
     }
     else if (event is FetchChannelMembersEvent) {
-      yield* _mapFetchMembersEvent(event);
+      List<MemberVo> mList = await getMemberVoList(0, event.topicName);
+      yield FetchChannelMembersState(mList);
+    }
+    else if (event is FetchMoreChannelMembersEvent){
+      List<MemberVo> mList = await getMemberVoList(event.startIndex, event.topicName);
+      yield FetchMoreChannelMembersState(mList,event.startIndex);
     }
   }
 
-  Stream<FetchChannelMembersState> _mapFetchMembersEvent(
-      FetchChannelMembersEvent event) async* {
-    String topicName = event.topicName;
+  Future<List<MemberVo>> getMemberVoList(int startIndex, String topicName) async{
     List<MemberVo> list = [];
 
-    List<Subscriber> subscribers = await SubscriberRepo().getAllSubscribedMemberByTopic(topicName);
+    List<Subscriber> subscribers = await _subscriberRepo.getSubscriberByTopic(topicName, startIndex);
     if (isPrivateTopicReg(topicName)){
       String owner = getPubkeyFromTopicOrChatId(topicName);
       if (owner == NKNClientCaller.currentChatId){
@@ -73,7 +78,6 @@ class ChannelBloc extends Bloc<ChannelMembersEvent, ChannelState> {
         list.add(member);
       }
     }
-    NLog.w('Got subscribers List is____' + list.length.toString());
-    yield FetchChannelMembersState(list);
+    return list;
   }
 }

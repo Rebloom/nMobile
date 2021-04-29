@@ -27,6 +27,12 @@ class FetchChannelMembersState extends ChannelState {
   const FetchChannelMembersState(this.memberList);
 }
 
+class FetchMoreChannelMembersState extends ChannelState{
+  final int startIndex;
+  final List<MemberVo> memberList;
+  const FetchMoreChannelMembersState(this.memberList,this.startIndex);
+}
+
 class FetchOwnChannelMembersState extends ChannelState{
   final List<MemberVo> memberList;
   const FetchOwnChannelMembersState(this.memberList);

@@ -283,26 +283,25 @@ class MessageListPageState extends State<MessageListPage>
                 }
                 else if (messageState is UpdateMessageListState){
                   NLog.w('UpdateMessageListState called');
-                  int replaceIndex = -1;
-                  for (int i = 0; i < _messagesList.length; i++){
-                    MessageListModel model = _messagesList[i];
-                    if (model.targetId == messageState.updateModel.targetId){
-                      _messagesList.removeAt(i);
-                      _messagesList.insert(i, messageState.updateModel);
-                      replaceIndex = i;
-                      break;
+                  if (messageState.updateModel == null){
+                    // NLog.w('_startRefreshMessage called');
+                    // _startRefreshMessage();
+                  }
+                  else{
+                    int replaceIndex = -1;
+                    for (int i = 0; i < _messagesList.length; i++){
+                      MessageListModel model = _messagesList[i];
+                      if (model.targetId == messageState.updateModel.targetId){
+                        _messagesList.removeAt(i);
+                        _messagesList.insert(i, messageState.updateModel);
+                        replaceIndex = i;
+                        break;
+                      }
+                    }
+                    if (replaceIndex > 0){
+                      /// todo Need refreshList
                     }
                   }
-                  if (replaceIndex > 0){
-                    /// todo Need refreshList
-                  }
-                  // if (messageState.updateModel == null){
-                  //   // NLog.w('_startRefreshMessage called');
-                  //   // _startRefreshMessage();
-                  // }
-                  // else{
-                  //
-                  // }
                 }
                 if (_messagesList.length > 0){
                   return _messageListWidget();

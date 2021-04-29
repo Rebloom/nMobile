@@ -40,7 +40,9 @@ class MemberStatus {
   static const int MemberJoinedButNotInvited = 5;
 }
 
-class SubscriberRepo with Tag {
+class SubscriberRepo {
+
+  static int pageLength = 100;
 
   Future<List<Subscriber>> getAllMemberWithNoMemberStatus(String topicName) async {
     Database cdb = await NKNDataManager().currentDatabase();
@@ -57,6 +59,18 @@ class SubscriberRepo with Tag {
         where: '$topic = ? AND $member_status = ?',
         whereArgs: [topicName, MemberStatus.MemberSubscribed],
         orderBy: '$time_create ASC');
+    return parseEntities(result);
+  }
+
+  Future<List<Subscriber>> getSubscriberByTopic(String topicName, int startIndex) async{
+    Database cdb = await NKNDataManager().currentDatabase();
+    List<Map<String, dynamic>> result = await cdb.query(tableName,
+        where: '$topic = ? AND $member_status = ?',
+        whereArgs: [topicName, MemberStatus.MemberSubscribed],
+        orderBy: '$time_create ASC',
+      limit:pageLength,
+      offset: startIndex
+    );
     return parseEntities(result);
   }
 
