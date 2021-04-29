@@ -10,11 +10,12 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   @override
   MessageState get initialState => DefaultMessageState();
 
+  static final pageLength = 20;
+
   @override
   Stream<MessageState> mapEventToState(MessageEvent event) async* {
     if (event is FetchMessageListEvent) {
-      NLog.w('DefaultMessageState called');
-      List<MessageListModel> messageList = await MessageListModel.getLastMessageList(event.start, 20);
+      List<MessageListModel> messageList = await MessageListModel.getLastMessageList(event.start, pageLength);
       messageList.sort((a, b) => a.isTop
           ? (b.isTop ? -1 /*hold position original*/ : -1)
           : (b.isTop
@@ -22,6 +23,16 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           : b.lastReceiveTime.compareTo(a.lastReceiveTime)));
       NLog.w('FetchMessageListEvent is______'+messageList.length.toString());
       yield FetchMessageListState(messageList,event.start);
+    }
+    else if (event is FetchMoreMessageListEvent){
+      List<MessageListModel> messageList = await MessageListModel.getLastMessageList(event.start, pageLength);
+      messageList.sort((a, b) => a.isTop
+          ? (b.isTop ? -1 /*hold position original*/ : -1)
+          : (b.isTop
+          ? 1
+          : b.lastReceiveTime.compareTo(a.lastReceiveTime)));
+      NLog.w('FetchMoreMessageListEvent is______'+messageList.length.toString());
+      yield FetchMoreMessageListState(messageList,event.start);
     }
     else if (event is FetchMessageListEndEvent){
       yield FetchMessageListEndState();

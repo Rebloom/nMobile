@@ -97,11 +97,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   }
 
   _startWatchDog(MessageSchema msg) {
-    if (batchReceivedList == null){
-      batchReceivedList = new List();
-    }
     bool canAdd = true;
-    if (batchReceivedList != null && batchReceivedList.length > 0){
+    if (batchReceivedList.length > 0){
       for (MessageSchema bMessage in batchReceivedList){
         if (bMessage.msgId == msg.msgId){
           canAdd = false;
@@ -117,7 +114,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     NLog.w('_startWatchDog batchReceivedList is____'+batchReceivedList.length.toString());
 
     if (watchDog == null || watchDog.isActive == false) {
-
       delayReceivingSeconds = 2;
       watchDog = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
         _batchInsertReceivingMessage();
@@ -127,7 +123,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   }
 
   _batchInsertReceivingMessage() async{
-    NLog.w('______!______'+delayReceivingSeconds.toString());
+    NLog.w('_batchInsertReceivingMessage11 count is____'+batchReceivedList.length.toString());
     if((delayReceivingSeconds == 0 && batchReceivedList.length > 0) ||
         batchReceivedList.length > 500){
       NLog.w('_batchInsertReceivingMessage count is____'+batchReceivedList.length.toString());
@@ -903,15 +899,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     MessageModel model = await MessageModel.modelFromMessageFrom(message);
     yield MessageUpdateState(target: targetId, message: model);
   }
-
-  // Stream<ChatState> _mapGetAndReadMessagesToState(
-  //     GetAndReadMessages event) async* {
-  //   if (event.target != null) {
-  //     MessageSchema.getAndReadTargetMessages(event.target);
-  //   }
-  //   NLog.w('From _mapGetAndReadMessagesToState');
-  //   yield MessageUpdateState(target: event.target);
-  // }
 
   /// change burn status
   _checkBurnOptions(MessageSchema message, ContactSchema contact) async {

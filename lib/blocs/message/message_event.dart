@@ -8,6 +8,11 @@ class FetchMessageListEvent extends MessageEvent {
   const FetchMessageListEvent(this.start);
 }
 
+class FetchMoreMessageListEvent extends MessageEvent{
+  final int start;
+  const FetchMoreMessageListEvent(this.start);
+}
+
 class FetchMessageListEndEvent extends MessageEvent{
   const FetchMessageListEndEvent();
 }

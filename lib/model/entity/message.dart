@@ -106,6 +106,8 @@ class MessageSchema extends Equatable {
             burnAfterSeconds = int.parse(options['deleteAfterSeconds'].toString());
           }
         }
+
+        receiveTime = DateTime.now();
         switch (contentType) {
           case ContentType.text:
           case ContentType.textExtension:
@@ -516,8 +518,10 @@ class MessageSchema extends Equatable {
   }
 
   Map toEntity(String accountPubkey) {
-    DateTime now = DateTime.now();
-
+    int rTime = DateTime.now().millisecondsSinceEpoch;
+    if (receiveTime != null){
+      rTime = receiveTime.millisecondsSinceEpoch;
+    }
     Map<String, dynamic> map = {
       'pid': pid != null ? hexEncode(pid) : null,
       'msg_id': msgId,
@@ -535,7 +539,7 @@ class MessageSchema extends Equatable {
       'is_outbound': isOutbound ? 1 : 0,
       'is_success': isSuccess ? 1 : 0,
       'is_send_error': isSendError ? 1 : 0,
-      'receive_time': now.millisecondsSinceEpoch,
+      'receive_time': rTime,
       'send_time': timestamp?.millisecondsSinceEpoch,
       'delete_time': deleteTime?.millisecondsSinceEpoch,
     };
@@ -553,7 +557,8 @@ class MessageSchema extends Equatable {
     } else if (contentType == ContentType.eventContactOptions) {
       map['content'] = content;
       if (map['send_time'] == null) {
-        map['send_time'] = now.millisecondsSinceEpoch;
+        NLog.w('Wrong!!!! mapSendTime is null');
+        map['send_time'] = DateTime.now().millisecondsSinceEpoch;
       }
     } else if (contentType == ContentType.nknOnePiece) {
       map['content'] = getLocalPath(accountPubkey, (content as File).path);

@@ -128,7 +128,7 @@ class MessageDataCenter {
     var res = await cdb.query(
       MessageSchema.tableName,
       columns: ['*'],
-      orderBy: 'send_time desc',
+      orderBy: 'receive_time desc',
       where: 'target_id = ? AND NOT type = ?',
       whereArgs: [targetId, ContentType.nknOnePiece],
       limit: 20,

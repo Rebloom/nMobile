@@ -10,6 +10,12 @@ class FetchMessageListState extends MessageState {
   const FetchMessageListState(this.messageList,this.startIndex);
 }
 
+class FetchMoreMessageListState extends MessageState{
+  final List<MessageListModel> messageList;
+  final int startIndex;
+  const FetchMoreMessageListState(this.messageList,this.startIndex);
+}
+
 class DefaultMessageState extends MessageState{
   const DefaultMessageState();
 }
