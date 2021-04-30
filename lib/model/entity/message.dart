@@ -782,8 +782,8 @@ class MessageSchema extends Equatable {
     String myChatId = NKNClientCaller.currentChatId;
     var res = await cdb.query(
       MessageSchema.tableName,
-      where: 'sender != ? AND is_read = 0 AND NOT type = ? AND NOT type = ?',
-      whereArgs: [myChatId, ContentType.nknOnePiece,ContentType.receipt],
+      where: 'sender != ? AND is_read = 0 AND NOT type = ? AND NOT type = ? AND NOT type = ? AND NOT type = ?',
+      whereArgs: [myChatId, ContentType.nknOnePiece, ContentType.receipt, ContentType.eventContactOptions, ContentType.eventSubscribe],
     );
 
     if (res != null){

@@ -246,71 +246,82 @@ class MessageListPageState extends State<MessageListPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return BlocBuilder<ChatBloc, ChatState>(
-      builder: (context, chatState) {
-        if (chatState is MessageUpdateState) {
-          if (chatState.target == null){
-            _startRefreshMessage();
-            NLog.w('chatState.target is_____null');
+
+    return BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          if (authState is AuthToUserState) {
+            NLog.w('AuthToUserState is_____' + authState.toString());
+            startIndex = 0;
+            _messagesList.clear();
+            _messageBloc.add(FetchMessageListEvent(startIndex));
+            _authBloc.add(AuthToFrontEvent());
           }
-          else{
-            int replaceIndex = -1;
-            for (int i = 0; i < _messagesList.length; i++){
-              MessageListModel model = _messagesList[i];
-              if (model.targetId == chatState.target){
-                replaceIndex = i;
-                break;
-              }
-            }
-            if (replaceIndex >= 0){
-              _startRefreshMessage();
-            }
-          }
-        }
-        return BlocBuilder<MessageBloc, MessageState>(
-          builder: (context, messageState){
-            NLog.w('messageState.messageState is_____'+messageState.toString());
-            if (messageState is FetchMessageListState){
-              if (messageState.messageList != null && messageState.messageList.length > 0){
-                _messagesList.clear();
-                _messagesList.addAll(messageState.messageList);
-              }
-            }
-            else if (messageState is FetchMoreMessageListState){
-              if (messageState.messageList != null && messageState.messageList.length > 0){
-                if (_messagesList.length == messageState.startIndex){
-                  _messagesList = _messagesList+messageState.messageList;
+          return BlocBuilder<ChatBloc, ChatState>(
+            builder: (context, chatState) {
+              if (chatState is MessageUpdateState) {
+                if (chatState.target == null){
+                  _startRefreshMessage();
+                  NLog.w('chatState.target is_____null');
                 }
-              }
-            }
-            else if (messageState is UpdateMessageListState){
-              if (messageState.updateModel == null){
-                NLog.w('_startRefreshMessage called ,messageListLength is___'+_messagesList.length.toString());
-              }
-              else{
-                NLog.w('_startRefreshMessage called targetId is____'+messageState.updateModel.targetId.toString());
-                int replaceIndex = -1;
-                for (int i = 0; i < _messagesList.length; i++){
-                  MessageListModel model = _messagesList[i];
-                  if (model.targetId == messageState.updateModel.targetId){
-                    replaceIndex = i;
-                    break;
+                else{
+                  int replaceIndex = -1;
+                  for (int i = 0; i < _messagesList.length; i++){
+                    MessageListModel model = _messagesList[i];
+                    if (model.targetId == chatState.target){
+                      replaceIndex = i;
+                      break;
+                    }
+                  }
+                  if (replaceIndex >= 0){
+                    _startRefreshMessage();
                   }
                 }
-                if (replaceIndex >= 0){
-                  _messagesList.removeAt(replaceIndex);
-                  _messagesList.insert(replaceIndex, messageState.updateModel);
-                }
               }
-            }
-            if (_messagesList.length > 0){
-              return _messageListWidget();
-            }
-            return _noMessageWidget();
-          },
-        );
-      },
-    );
+              return BlocBuilder<MessageBloc, MessageState>(
+                builder: (context, messageState){
+                  NLog.w('messageState.messageState is_____'+messageState.toString());
+                  if (messageState is FetchMessageListState){
+                    if (messageState.messageList != null && messageState.messageList.length > 0){
+                      _messagesList.clear();
+                      _messagesList.addAll(messageState.messageList);
+                    }
+                  }
+                  else if (messageState is FetchMoreMessageListState){
+                    if (messageState.messageList != null && messageState.messageList.length > 0){
+                      if (_messagesList.length == messageState.startIndex){
+                        _messagesList = _messagesList+messageState.messageList;
+                      }
+                    }
+                  }
+                  else if (messageState is UpdateMessageListState){
+                    if (messageState.updateModel == null){
+                      NLog.w('_startRefreshMessage called ,messageListLength is___'+_messagesList.length.toString());
+                    }
+                    else{
+                      NLog.w('_startRefreshMessage called targetId is____'+messageState.updateModel.targetId.toString());
+                      int replaceIndex = -1;
+                      for (int i = 0; i < _messagesList.length; i++){
+                        MessageListModel model = _messagesList[i];
+                        if (model.targetId == messageState.updateModel.targetId){
+                          replaceIndex = i;
+                          break;
+                        }
+                      }
+                      if (replaceIndex >= 0){
+                        _messagesList.removeAt(replaceIndex);
+                        _messagesList.insert(replaceIndex, messageState.updateModel);
+                      }
+                    }
+                  }
+                  if (_messagesList.length > 0){
+                    return _messageListWidget();
+                  }
+                  return _noMessageWidget();
+                },
+              );
+            },
+          );
+        });
   }
 
   showMenu(MessageListModel item, int index) {
