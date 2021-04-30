@@ -43,7 +43,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   bool googleServiceOnInit = false;
 
   Timer watchDog;
-  int delayReceivingSeconds = 2;
+  int delayReceivingSeconds = 1;
   List<MessageSchema> batchReceivedList = new List();
 
   // int delayResendSeconds = 15;
@@ -112,7 +112,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
     NLog.w('_startWatchDog batchReceivedList is____'+batchReceivedList.length.toString());
 
     if (watchDog == null || watchDog.isActive == false) {
-      delayReceivingSeconds = 2;
+      delayReceivingSeconds = 1;
       watchDog = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
         _batchInsertReceivingMessage();
         delayReceivingSeconds--;
@@ -132,7 +132,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
   }
 
   _stopWatchDog() {
-    delayReceivingSeconds = 2;
+    delayReceivingSeconds = 1;
     if (watchDog.isActive) {
       watchDog.cancel();
       watchDog = null;
@@ -891,6 +891,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> with Tag {
       targetId = message.from;
     }
 
+    NLog.w('TargetId is____'+targetId.toString());
     message.setMessageStatus(MessageStatus.MessageReceived);
     MessageModel model = await MessageModel.modelFromMessageFrom(message);
     yield MessageUpdateState(target: targetId, message: model);

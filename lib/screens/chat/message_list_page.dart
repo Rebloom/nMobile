@@ -57,7 +57,7 @@ class MessageListPage extends StatefulWidget {
 
 class MessageListPageState extends State<MessageListPage>
     with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin, Tag {
-  List<MessageListModel> _messagesList = <MessageListModel>[];
+  List<MessageListModel> _messagesList;
 
   AuthBloc _authBloc;
   ChatBloc _chatBloc;
@@ -85,6 +85,7 @@ class MessageListPageState extends State<MessageListPage>
     _authBloc = BlocProvider.of<AuthBloc>(context);
     _chatBloc = BlocProvider.of<ChatBloc>(context);
     _messageBloc = BlocProvider.of<MessageBloc>(context);
+    _messagesList = new List<MessageListModel>();
 
     _startRefreshMessage();
 
@@ -224,9 +225,6 @@ class MessageListPageState extends State<MessageListPage>
 
   _startRefreshMessage() async {
     _updateTopicBlock();
-    if (_messagesList == null){
-      _messagesList = new List();
-    }
     startIndex = 0;
     _messageBloc.add(FetchMessageListEvent(startIndex));
     NLog.w('_startRefreshMessage called is____'+startIndex.toString());
@@ -248,68 +246,67 @@ class MessageListPageState extends State<MessageListPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        if (authState is AuthToUserState) {
-          NLog.w('AuthToUserState is_____'+authState.toString());
-          startIndex = 0;
-          _messageBloc.add(FetchMessageListEvent(startIndex));
-          _authBloc.add(AuthToFrontEvent());
-        }
-        return BlocBuilder<ChatBloc, ChatState>(
-          builder: (context, chatState) {
-            if (chatState is MessageUpdateState) {
-              if (chatState.target == null){
-                _startRefreshMessage();
-                NLog.w('chatState.target is_____null');
-              }
-              else{
-                _messageBloc.add(UpdateMessageListEvent(chatState.target));
+    return BlocBuilder<ChatBloc, ChatState>(
+      builder: (context, chatState) {
+        if (chatState is MessageUpdateState) {
+          if (chatState.target == null){
+            _startRefreshMessage();
+            NLog.w('chatState.target is_____null');
+          }
+          else{
+            int replaceIndex = -1;
+            for (int i = 0; i < _messagesList.length; i++){
+              MessageListModel model = _messagesList[i];
+              if (model.targetId == chatState.target){
+                replaceIndex = i;
+                break;
               }
             }
-            return BlocBuilder<MessageBloc, MessageState>(
-              builder: (context, messageState){
-                NLog.w('messageState.messageState is_____'+messageState.toString());
-                if (messageState is FetchMessageListState){
-                  if (messageState.messageList != null && messageState.messageList.length > 0){
-                    _messagesList = messageState.messageList;
+            if (replaceIndex >= 0){
+              _startRefreshMessage();
+            }
+          }
+        }
+        return BlocBuilder<MessageBloc, MessageState>(
+          builder: (context, messageState){
+            NLog.w('messageState.messageState is_____'+messageState.toString());
+            if (messageState is FetchMessageListState){
+              if (messageState.messageList != null && messageState.messageList.length > 0){
+                _messagesList.clear();
+                _messagesList.addAll(messageState.messageList);
+              }
+            }
+            else if (messageState is FetchMoreMessageListState){
+              if (messageState.messageList != null && messageState.messageList.length > 0){
+                if (_messagesList.length == messageState.startIndex){
+                  _messagesList = _messagesList+messageState.messageList;
+                }
+              }
+            }
+            else if (messageState is UpdateMessageListState){
+              if (messageState.updateModel == null){
+                NLog.w('_startRefreshMessage called ,messageListLength is___'+_messagesList.length.toString());
+              }
+              else{
+                NLog.w('_startRefreshMessage called targetId is____'+messageState.updateModel.targetId.toString());
+                int replaceIndex = -1;
+                for (int i = 0; i < _messagesList.length; i++){
+                  MessageListModel model = _messagesList[i];
+                  if (model.targetId == messageState.updateModel.targetId){
+                    replaceIndex = i;
+                    break;
                   }
                 }
-                else if (messageState is FetchMoreMessageListState){
-                  if (messageState.messageList != null && messageState.messageList.length > 0){
-                    if (_messagesList.length == messageState.startIndex){
-                      _messagesList = _messagesList+messageState.messageList;
-                    }
-                  }
+                if (replaceIndex >= 0){
+                  _messagesList.removeAt(replaceIndex);
+                  _messagesList.insert(replaceIndex, messageState.updateModel);
                 }
-                else if (messageState is UpdateMessageListState){
-                  NLog.w('UpdateMessageListState called');
-                  if (messageState.updateModel == null){
-                    NLog.w('_startRefreshMessage called');
-                    // _startRefreshMessage();
-                  }
-                  else{
-                    int replaceIndex = -1;
-                    for (int i = 0; i < _messagesList.length; i++){
-                      MessageListModel model = _messagesList[i];
-                      if (model.targetId == messageState.updateModel.targetId){
-                        _messagesList.removeAt(i);
-                        _messagesList.insert(i, messageState.updateModel);
-                        replaceIndex = i;
-                        break;
-                      }
-                    }
-                    if (replaceIndex > 0){
-                      /// todo Need refreshList
-                    }
-                  }
-                }
-                if (_messagesList.length > 0){
-                  return _messageListWidget();
-                }
-                return _noMessageWidget();
-              },
-            );
+              }
+            }
+            if (_messagesList.length > 0){
+              return _messageListWidget();
+            }
+            return _noMessageWidget();
           },
         );
       },
@@ -917,7 +914,7 @@ class MessageListPageState extends State<MessageListPage>
         arguments: argument).then((value) {
       NLog.w('MarkMessageListAsReadEvent called____'+targetId);
       if (updateModel != null){
-        _startRefreshMessage();
+        _messageBloc.add(FetchMessageListEvent(_messagesList.length));
       }
       if (value == true) {
         NLog.w('_routeToGroupChatPage called____');
