@@ -508,7 +508,7 @@ class NknClientPlugin(private val acty: MainActivity?, flutterEngine: FlutterEng
 
         val transactionConfig = TransactionConfig()
         transactionConfig.fee = fee
-        transactionConfig.nonce = nonce
+//        transactionConfig.nonce = nonce
 
         subscribersHandler.post {
             try {

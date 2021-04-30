@@ -509,7 +509,7 @@ public class NknClientPlugin : NSObject, FlutterStreamHandler {
             
             let transactionConfig: NknTransactionConfig = NknTransactionConfig.init()
             transactionConfig.fee = fee
-            transactionConfig.nonce = nonce
+//            transactionConfig.nonce = nonce
 
             var error: NSError?
             

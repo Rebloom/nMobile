@@ -279,11 +279,11 @@ class MessageListPageState extends State<MessageListPage>
               }
               return BlocBuilder<MessageBloc, MessageState>(
                 builder: (context, messageState){
-                  NLog.w('messageState.messageState is_____'+messageState.toString());
                   if (messageState is FetchMessageListState){
                     if (messageState.messageList != null && messageState.messageList.length > 0){
-                      _messagesList.clear();
-                      _messagesList.addAll(messageState.messageList);
+                      if (_messagesList.length == 0){
+                        _messagesList.addAll(messageState.messageList);
+                      }
                     }
                   }
                   else if (messageState is FetchMoreMessageListState){

@@ -982,22 +982,26 @@ class GroupDataCenter{
     } catch (e) {
       if (e != null) {
         NLog.w('Group_Chat_Helper__ got Exception:' + e.toString());
-      }
-      if (e.toString().contains('duplicate subscription exist in block')) {
-        Topic topicInfo = await GroupChatHelper.fetchTopicInfoByName(topicName);
-        if (topicInfo != null) {
-          var sendMsg = MessageSchema.formSendMessage(
-            from: NKNClientCaller.currentChatId,
-            topic: topicName,
-            contentType: ContentType.eventSubscribe,
-          );
-          sendMsg.content = sendMsg.toEventSubscribeData();
-          chatBloc.add(SendMessageEvent(sendMsg));
-          callback(true, null);
+        if (e.toString().contains('duplicate subscription exist in block')) {
+          Topic topicInfo = await GroupChatHelper.fetchTopicInfoByName(topicName);
+          if (topicInfo != null) {
+            var sendMsg = MessageSchema.formSendMessage(
+              from: NKNClientCaller.currentChatId,
+              topic: topicName,
+              contentType: ContentType.eventSubscribe,
+            );
+            sendMsg.content = sendMsg.toEventSubscribeData();
+            chatBloc.add(SendMessageEvent(sendMsg));
+            callback(true, null);
+          }
+          await GroupChatHelper.insertTopicIfNotExists(topicName);
+        } else {
+          if (e.toString().contains('nonce is not continuous') ||
+              e.toString().contains('nonce is too low')){
+            Global.currentNonce = await NKNClientCaller.fetchNonce();
+          }
+          callback(false, e);
         }
-        await GroupChatHelper.insertTopicIfNotExists(topicName);
-      } else {
-        callback(false, e);
       }
     }
   }

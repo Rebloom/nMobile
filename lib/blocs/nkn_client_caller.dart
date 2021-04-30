@@ -231,9 +231,8 @@ class NKNClientCaller {
 
     if (Global.currentNonce == 0){
       Global.currentNonce = await fetchNonce();
-      NLog.w('Global.currentNonce is____'+Global.currentNonce.toString());
     }
-
+    Global.currentNonce = Global.currentNonce+1;
     Map dataInfo = {
       '_id': id,
       'identifier': identifier,
@@ -246,9 +245,9 @@ class NKNClientCaller {
     NLog.w('Subscriber DataInfo is____'+dataInfo.toString());
     try {
       _methodChannel.invokeMethod('subscribe', dataInfo);
-      Global.currentNonce = Global.currentNonce++;
     } catch (e) {
       NLog.w('subscribe completeE:' + e.toString());
+      Global.currentNonce = await fetchNonce();
       completer.completeError(e);
     }
     return completer.future;
