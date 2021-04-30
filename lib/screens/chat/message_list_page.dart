@@ -250,9 +250,8 @@ class MessageListPageState extends State<MessageListPage>
     return BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           if (authState is AuthToUserState) {
-            NLog.w('AuthToUserState is_____' + authState.toString());
+            NLog.w('AuthToUserState is_____'+authState.toString());
             startIndex = 0;
-            _messagesList.clear();
             _messageBloc.add(FetchMessageListEvent(startIndex));
             _authBloc.add(AuthToFrontEvent());
           }
@@ -281,9 +280,11 @@ class MessageListPageState extends State<MessageListPage>
                 builder: (context, messageState){
                   if (messageState is FetchMessageListState){
                     if (messageState.messageList != null && messageState.messageList.length > 0){
-                      if (_messagesList.length == 0){
-                        _messagesList.addAll(messageState.messageList);
-                      }
+                      _messagesList.clear();
+                      _messagesList.addAll(messageState.messageList);
+                    }
+                    else{
+                      _messagesList.clear();
                     }
                   }
                   else if (messageState is FetchMoreMessageListState){
@@ -295,7 +296,7 @@ class MessageListPageState extends State<MessageListPage>
                   }
                   else if (messageState is UpdateMessageListState){
                     if (messageState.updateModel == null){
-                      NLog.w('_startRefreshMessage called ,messageListLength is___'+_messagesList.length.toString());
+                      _startRefreshMessage();
                     }
                     else{
                       NLog.w('_startRefreshMessage called targetId is____'+messageState.updateModel.targetId.toString());
@@ -310,6 +311,10 @@ class MessageListPageState extends State<MessageListPage>
                       if (replaceIndex >= 0){
                         _messagesList.removeAt(replaceIndex);
                         _messagesList.insert(replaceIndex, messageState.updateModel);
+                      }
+                      else{
+                        _startRefreshMessage();
+                        NLog.w('MessageListPage add new');
                       }
                     }
                   }
@@ -925,7 +930,7 @@ class MessageListPageState extends State<MessageListPage>
         arguments: argument).then((value) {
       NLog.w('MarkMessageListAsReadEvent called____'+targetId);
       if (updateModel != null){
-        _messageBloc.add(FetchMessageListEvent(_messagesList.length));
+        _messageBloc.add(UpdateMessageListEvent(updateModel.targetId));
       }
       if (value == true) {
         NLog.w('_routeToGroupChatPage called____');

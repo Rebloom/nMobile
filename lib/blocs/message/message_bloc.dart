@@ -16,12 +16,17 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   Stream<MessageState> mapEventToState(MessageEvent event) async* {
     if (event is FetchMessageListEvent) {
       List<MessageListModel> messageList = await MessageListModel.getLastMessageList(event.start, pageLength);
-      messageList.sort((a, b) => a.isTop
-          ? (b.isTop ? -1 /*hold position original*/ : -1)
-          : (b.isTop
-          ? 1
-          : b.lastReceiveTime.compareTo(a.lastReceiveTime)));
-      NLog.w('FetchMessageListEvent is______'+messageList.length.toString());
+      if (messageList == null){
+
+      }
+      else{
+        messageList.sort((a, b) => a.isTop
+            ? (b.isTop ? -1 /*hold position original*/ : -1)
+            : (b.isTop
+            ? 1
+            : b.lastReceiveTime.compareTo(a.lastReceiveTime)));
+        NLog.w('FetchMessageListEvent is______'+messageList.length.toString());
+      }
       yield FetchMessageListState(messageList,event.start);
     }
     else if (event is FetchMoreMessageListEvent){

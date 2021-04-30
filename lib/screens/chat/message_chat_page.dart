@@ -430,6 +430,7 @@ class _MessageChatPageState extends State<MessageChatPage> {
         NKNClientCaller.currentChatId, targetId,
         content: _sendController.text);
     _chatBloc.add(RefreshMessageListEvent(targetId: targetId));
+    _messageBloc.add(UpdateMessageListEvent(targetId));
 
     _chatSubscription?.cancel();
     _authSubscription?.cancel();
